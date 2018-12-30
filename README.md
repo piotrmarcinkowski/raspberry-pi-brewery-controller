@@ -10,18 +10,28 @@ This README would normally document whatever steps are necessary to get your app
 
 ### How do I get set up? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-The code requires the dependencies defined in requirements.txt file to be installed. In order to do this type
-    pip install -r requirements.txt
+### Configuration ####
+
+#### Dependencies ####
+
+The code requires the dependencies defined in requirements.txt file to be installed. In order to do this type 
+
+```  
+pip install -r requirements.txt
+```
 
 In the project's root folder there is also requirements-dev.txt file. It contains dependencies that can be usefull for development. All the libraries defined there should already be installed on Raspberry device. Type the following line to install them in your development environment.
-    pip install -r requirements-dev.txt
 
-* Database configuration
-* How to run tests
-* Deployment instructions
+```
+pip install -r requirements-dev.txt
+```
+
+#### How to run tests ####
+
+#### Deployment instructions ####
+
+### Used libraries ###
+* https://github.com/timofurrer/w1thermsensor
 
 ### Contribution guidelines ###
 
