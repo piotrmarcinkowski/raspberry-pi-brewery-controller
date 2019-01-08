@@ -27,6 +27,11 @@ pip install -r requirements-dev.txt
 ```
 
 #### How to run tests ####
+In order to run unit tests type the following command in the root direcotry
+
+```
+raspberry-pi-brewery-controller$ python -m unittest discover -s tests/controller/ -p '*_test.py'
+```
 
 #### Deployment instructions ####
 
