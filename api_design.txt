@@ -1,0 +1,54 @@
+API:
+GET	http://[hostname]/brewery/api/v1.0/therm_sensors	Retrieve list of therm sensors
+GET	http://[hostname]/brewery/api/v1.0/therm_sensors/[therm_sensor_id]	Retrieve a single therm sensor data
+POST http://[hostname]/brewery/api/v1.0/therm_sensors/[therm_sensor_id]/name	 Set therm sensor name
+GET	http://[hostname]/brewery/api/v1.0/programs 	Get existing programs
+POST	http://[hostname]/brewery/api/v1.0/programs 	Set a new program
+GET	http://[hostname]/brewery/api/v1.0/programs/[program_id] 	Get program details - eg. logs
+PUT	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Update an existing program - eg. change temp
+DELETE	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Delete a program
+
+getConnectedSensors
+-------------------
+sensors [
+    {
+        id: "sensor1Id",
+        name: "sensor1Name"},
+    }
+    {
+        id: "sensor2Id"
+    }
+]
+
+setSensorName
+-------------
+sensor {
+    id: "sensorId",
+    name: "sensorName"
+}
+
+getTemperature
+--------------
+sensor {
+    id: "sensorId",
+    name: "sensorName",
+    temperature: <float>
+}
+
+getActivePrograms
+-----------------
+programs [
+    ?
+]
+
+setProgram
+----------
+program {
+    sensor_id: "sensorId",
+    relay_heating_index: <integer[1..8]>,
+    relay_cooling_index: <integer[1..8]>,
+    program_activation_temp: <float> ?
+    temp_min: <float> ?
+    temp_max: <float> ?
+}
+
