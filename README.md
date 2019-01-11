@@ -27,10 +27,11 @@ pip install -r requirements-dev.txt
 ```
 
 #### How to run tests ####
-In order to run unit tests type the following command in the root direcotry
+In order to run unit tests type the following command in the root directory
 
 ```
-raspberry-pi-brewery-controller$ python -m unittest discover -s tests/controller/ -p '*_test.py'
+export W1THERMSENSOR_NO_KERNEL_MODULE=1
+python -m unittest discover -s tests/controller/ -p '*_test.py'
 ```
 
 #### Deployment instructions ####
