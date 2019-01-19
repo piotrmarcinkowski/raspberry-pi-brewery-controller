@@ -17,13 +17,13 @@ class ThermSensorDetectorTestCase(unittest.TestCase):
         W1ThermSensor.get_available_sensors = Mock(return_value=mocked_sensors)
 
         detector = ThermSensorDetector()
-        returned_sensors = detector.get_sensors()
+        detected_sensors = detector.detect_sensors()
 
         W1ThermSensor.get_available_sensors.assert_called_once()
-        self.assertEqual(len(returned_sensors), len(mocked_sensors))
-        self.assertEqual(returned_sensors[0].id, '100001')
-        self.assertEqual(returned_sensors[1].id, '100002')
-        self.assertEqual(returned_sensors[2].id, '100003')
+        self.assertEqual(len(detected_sensors), len(mocked_sensors))
+        self.assertEqual(detected_sensors[0].id, '100001')
+        self.assertEqual(detected_sensors[1].id, '100002')
+        self.assertEqual(detected_sensors[2].id, '100003')
 
 
 if __name__ == '__main__':

@@ -7,6 +7,6 @@ class ThermSensorDetector:
     def __init__(self):
         pass
 
-    def get_sensors(self):
+    def detect_sensors(self):
         w1_therm_sensors = W1ThermSensor.get_available_sensors()
         return tuple([ThermSensor(x.id) for x in w1_therm_sensors])
