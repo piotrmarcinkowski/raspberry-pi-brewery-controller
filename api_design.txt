@@ -10,7 +10,7 @@ DELETE	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Delete a program
 
 getConnectedSensors
 -------------------
-sensors [
+[
     {
         id: "sensor1Id",
         name: "sensor1Name"},
@@ -22,14 +22,14 @@ sensors [
 
 setSensorName
 -------------
-sensor {
+{
     id: "sensorId",
     name: "sensorName"
 }
 
 getTemperature
 --------------
-sensor {
+{
     id: "sensorId",
     name: "sensorName",
     temperature: <float>
