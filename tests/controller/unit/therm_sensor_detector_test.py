@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from controller.therm_sensor_detector import ThermSensorDetector
+from app.therm_sensor_detector import ThermSensorDetector
 from w1thermsensor import W1ThermSensor
 
 

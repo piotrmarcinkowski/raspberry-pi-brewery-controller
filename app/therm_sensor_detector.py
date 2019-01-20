@@ -1,5 +1,5 @@
 from w1thermsensor import W1ThermSensor
-from controller.therm_sensor import ThermSensor
+from app.therm_sensor import ThermSensor
 
 
 class ThermSensorDetector:

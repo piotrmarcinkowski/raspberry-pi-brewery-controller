@@ -1,7 +1,9 @@
 import json
 
+
 class ThermSensor(object):
     """Single temperature sensor"""
+
     def __init__(self, sensor_id):
         super(ThermSensor, self).__init__()
         self.__sensor_id = sensor_id

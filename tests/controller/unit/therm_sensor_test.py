@@ -1,7 +1,7 @@
 import unittest
 import json
 
-from controller.therm_sensor import ThermSensor
+from app.therm_sensor import ThermSensor
 
 
 class ThermSensorTestCase(unittest.TestCase):
