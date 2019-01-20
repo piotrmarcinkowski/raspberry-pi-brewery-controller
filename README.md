@@ -31,8 +31,7 @@ In order to run unit tests type the following command in the root directory
 
 ```
 pip3 install -r requirements.txt
-export W1THERMSENSOR_NO_KERNEL_MODULE=1
-python3 -m unittest discover -s tests/controller/ -p '*_test.py'
+python3 -m unittest discover -s tests/ -p '*_test.py'
 ```
 
 #### Deployment instructions ####
