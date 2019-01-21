@@ -1,6 +1,6 @@
 from app.hardware.therm_sensor_api import ThermSensorApi
 from app.therm_sensor import ThermSensor
-
+from app.logger import Logger
 
 class Controller(object):
     __therm_sensor_api: ThermSensorApi = None
@@ -20,10 +20,10 @@ class Controller(object):
         Start controller. After this function is called the controller will periodically update active programs to
         maintain requested temperature by turning on/off coolers attached to relays
         """
-        print("Controller running...")
+        Logger.info("Starting controller")
         while True:
             pass
-        print("Controller stopped")
+        Logger.info("Controller stopped")
 
     def get_therm_sensors(self):
         """
