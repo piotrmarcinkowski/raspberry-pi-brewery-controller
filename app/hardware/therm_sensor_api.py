@@ -4,7 +4,7 @@ import w1thermsensor.errors as w1errors
 
 class ThermSensorApi(object):
 
-    def get_sensor_id_list(self):
+    def get_sensor_id_list(self) -> list:
         """
             Return IDs of all available sensors.
 

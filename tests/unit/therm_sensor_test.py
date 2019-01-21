@@ -22,25 +22,6 @@ class ThermSensorTestCase(unittest.TestCase):
         self.sensor.name = "test_name"
         self.assertEqual(self.sensor.name, "test_name")
 
-    def test_should_return_proper_json_representation(self):
-        self.sensor.name = "test_name"
-        serialized_to_json = self.sensor.to_json()
-        deserialized_from_json = json.loads(serialized_to_json)
-
-        self.assertEqual(len(deserialized_from_json), 2)
-        self.assertEqual(deserialized_from_json['id'], self.sensor.id)
-        self.assertEqual(deserialized_from_json['name'], self.sensor.name)
-
-    def test_should_construct_sensor_from_json(self):
-        sensor_json = """
-            {"id": "123",
-             "name": "sensor_name"}
-        """
-        sensor = ThermSensor.from_json(sensor_json)
-
-        self.assertEqual(sensor.id, "123")
-        self.assertEqual(sensor.name, "sensor_name")
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,11 +1,12 @@
 from app.controller import Controller
-from app.http_server import start_server_in_separate_thread
+import app.http_server as server
 
 
 def main():
-    main_controller = Controller()
-    start_server_in_separate_thread(main_controller)
-    main_controller.run()
+    controller = Controller()
+    server.init(controller)
+    server.start_server_in_separate_thread()
+    controller.run()
 
 
 if __name__ == '__main__':

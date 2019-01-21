@@ -1,6 +1,3 @@
-import json
-
-
 class ThermSensor(object):
     """Single temperature sensor"""
 
@@ -20,13 +17,3 @@ class ThermSensor(object):
     @name.setter
     def name(self, name):
         self.__name = name
-
-    def to_json(self):
-        return json.dumps({'id': self.id, 'name': self.name})
-
-    @classmethod
-    def from_json(cls, sensor_json):
-        data = json.loads(sensor_json)
-        sensor = ThermSensor(data['id'])
-        sensor.name = data['name']
-        return sensor
