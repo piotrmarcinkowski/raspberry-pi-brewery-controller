@@ -40,12 +40,12 @@ class ThermSensorApiTestCase(unittest.TestCase):
             temp = api.get_sensor_temperature(self.MOCKED_SENSORS[index]['id'])
             self.assertEqual(temp, self.MOCKED_SENSORS[index]['temp'])
 
-    def test_should_raise_error_when_sensor_not_found(self):
+    def test_should_raise_error_on_reading_temperature_when_sensor_not_found(self):
         api = ThermSensorApi()
         with self.assertRaises(NoSensorFoundError):
             api.get_sensor_temperature("invalid_id")
 
-    def test_should_raise_error_when_lib_raised_error(self):
+    def test_should_raise_error_on_reading_temperature_when_lib_raised_error(self):
         api = ThermSensorApi()
         self.mocked_sensors[0].get_temperature = Mock(side_effect=w1errors.NoSensorFoundError("name", "id"))
         self.mocked_sensors[1].get_temperature = Mock(side_effect=w1errors.SensorNotReadyError(self.mocked_sensors[1]))
