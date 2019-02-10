@@ -7,7 +7,7 @@ import sys
 from app.controller import Controller
 
 this_module = sys.modules[__name__]
-__controller: Controller = None
+__controller = None
 __server_running = False
 app = Flask("BreweryRestAPI")
 URL_PATH = "/brewery/api/v1.0/"

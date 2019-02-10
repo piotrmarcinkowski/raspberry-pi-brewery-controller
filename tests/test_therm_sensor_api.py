@@ -28,7 +28,7 @@ class ThermSensorApiTestCase(unittest.TestCase):
         api = ThermSensorApi()
         detected_sensors = api.get_sensor_id_list()
 
-        W1ThermSensor.get_available_sensors.assert_called_once()
+        W1ThermSensor.get_available_sensors.assert_called_once_with()
         self.assertEqual(len(detected_sensors), len(self.MOCKED_SENSORS))
         for index in range(len(self.MOCKED_SENSORS)):
             self.assertEqual(detected_sensors[index], self.MOCKED_SENSORS[index]['id'])

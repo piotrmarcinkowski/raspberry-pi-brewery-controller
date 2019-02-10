@@ -4,8 +4,8 @@ from app.therm_sensor import ThermSensor
 
 
 class Controller(object):
-    __therm_sensor_api: ThermSensorApi = None
-    __sensor_list: list = None
+    __therm_sensor_api = None
+    __sensor_list = None
 
     def __init__(self, therm_sensor_api=ThermSensorApi()):
         """

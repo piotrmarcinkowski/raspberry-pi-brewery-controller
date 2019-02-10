@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import Mock
 
@@ -26,7 +27,11 @@ class HttpServerTestCase(unittest.TestCase):
 
     def test_should_return_list_of_available_therm_sensors(self):
         response = server.get_therm_sensors()
-        self.assertEqual(response, '[{"id": "1001", "name": "sensor_1"}, {"id": "1002", "name": "sensor_2"}, {"id": "1003", "name": ""}]')
-
-
-
+        response_json = json.loads(response)
+        self.assertEqual(len(response_json), 3)
+        self.assertEqual(response_json[0]["id"], "1001")
+        self.assertEqual(response_json[0]["name"], "sensor_1")
+        self.assertEqual(response_json[1]["id"], "1002")
+        self.assertEqual(response_json[1]["name"], "sensor_2")
+        self.assertEqual(response_json[2]["id"], "1003")
+        self.assertEqual(response_json[2]["name"], "")

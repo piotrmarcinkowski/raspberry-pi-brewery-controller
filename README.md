@@ -29,6 +29,8 @@ do the following on Raspberry-Pi device:
 
 #### Dependencies ####
 
+The app is intended to run on Python 3.5
+
 The code requires the dependencies defined in requirements.txt file to be installed. In order to do this type 
 
 ```  
