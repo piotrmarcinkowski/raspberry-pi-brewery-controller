@@ -1,6 +1,7 @@
 from app.hardware.therm_sensor_api import ThermSensorApi
-from app.therm_sensor import ThermSensor
 from app.logger import Logger
+from app.therm_sensor import ThermSensor
+
 
 class Controller(object):
     __therm_sensor_api: ThermSensorApi = None
