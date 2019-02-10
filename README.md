@@ -10,6 +10,21 @@ This README would normally document whatever steps are necessary to get your app
 
 ### How do I get set up? ###
 
+The app communicates with therm sensors via 1-wire interface. 
+By default 1-wire support is disabled on Raspberry-Pi. The library
+used for communication with therm sensors attempts to load kernel
+module for 1-wire support at every start but preferred way is to
+load this module manually and disable auto loading by setting
+environment variable W1THERMSENSOR_NO_KERNEL_MODULE=1
+In order manually add proper kernel module to enable 1-wire support
+do the following on Raspberry-Pi device:
+- sudo raspi-config
+- Select 'Interfacing Options'
+- Select 'P7 1-Wire'
+- Select 'Yes' to enable 1-wire interface
+- When leaving raspi-config remember to reboot the device
+- After boot type lsmod and verify whether w1_gpio module is correctly loaded  
+
 ### Configuration ####
 
 #### Dependencies ####
@@ -34,6 +49,9 @@ pip3 install -r requirements.txt
 export W1THERMSENSOR_NO_KERNEL_MODULE=1
 python3 -m unittest discover -s tests
 ```
+
+In order to run the tests from IDE like PyCharm you may need to specify
+the W1THERMSENSOR_NO_KERNEL_MODULE variable in Run Configuration
 
 #### Deployment instructions ####
 On your raspberry-pi clone this project and run with
