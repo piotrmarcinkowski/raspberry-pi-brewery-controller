@@ -1,3 +1,4 @@
+import time
 from app.hardware.therm_sensor_api import ThermSensorApi
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
@@ -23,6 +24,7 @@ class Controller(object):
         """
         Logger.info("Starting controller")
         while True:
+            time.sleep(1)
             pass
         Logger.info("Controller stopped")
 
