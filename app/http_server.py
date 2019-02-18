@@ -25,6 +25,12 @@ def get_therm_sensors():
     return json.dumps(response)
 
 
+@app.route(URL_PATH + URL_RESOURCE_SENSORS + "/<sensor_id>", methods=['GET'])
+def get_therm_sensor_temperature(sensor_id):
+    response = {"id": sensor_id, "temperature": __controller.get_therm_sensor_temperature(sensor_id)}
+    return json.dumps(response)
+
+
 def start_server():
     if this_module.__server_running:
         raise RuntimeError("Server already running")

@@ -40,3 +40,14 @@ class Controller(object):
             self.__sensor_list = [ThermSensor(sensor_id) for sensor_id in sensor_ids]
 
         return self.__sensor_list
+
+    def get_therm_sensor_temperature(self, sensor_id):
+        """
+        Returns current temperature of therm sensor with a given sensor_id
+        :param sensor_id: Id of the sensor to read temperature from
+        :type sensor_id: str
+        :return: List of available therm sensors
+        :rtype float
+        """
+
+        return self.__therm_sensor_api.get_sensor_temperature(sensor_id)

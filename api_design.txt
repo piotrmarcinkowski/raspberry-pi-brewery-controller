@@ -8,7 +8,8 @@ GET	http://[hostname]/brewery/api/v1.0/programs/[program_id] 	Get program detail
 PUT	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Update an existing program - eg. change temp
 DELETE	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Delete a program
 
-getConnectedSensors
+
+GET ../therm_sensors
 -------------------
 [
     {
@@ -20,29 +21,21 @@ getConnectedSensors
     }
 ]
 
-setSensorName
--------------
+GET ../therm_sensors/sensorId
+--------------------
 {
     id: "sensorId",
-    name: "sensorName"
-}
-
-getTemperature
---------------
-{
-    id: "sensorId",
-    name: "sensorName",
     temperature: <float>
 }
 
-getActivePrograms
------------------
+GET ../programs
+--------------------
 programs [
     ?
 ]
 
-setProgram
-----------
+POST ../programs
+--------------------
 program {
     sensor_id: "sensorId",
     relay_heating_index: <integer[1..8]>,
