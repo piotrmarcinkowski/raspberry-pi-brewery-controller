@@ -48,6 +48,8 @@ class Controller(object):
         :type sensor_id: str
         :return: List of available therm sensors
         :rtype float
+        :raises NoSensorFoundError: if the sensor with the given id could not be found
+        :raises SensorNotReadyError: if the sensor is not ready yet
         """
 
         return self.__therm_sensor_api.get_sensor_temperature(sensor_id)

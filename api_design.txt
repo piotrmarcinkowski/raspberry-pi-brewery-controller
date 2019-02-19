@@ -23,10 +23,13 @@ GET ../therm_sensors
 
 GET ../therm_sensors/sensorId
 --------------------
+200
 {
     id: "sensorId",
     temperature: <float>
 }
+404 when sensor not found
+403 when sensor not ready
 
 GET ../programs
 --------------------

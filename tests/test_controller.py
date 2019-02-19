@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from app.controller import Controller
-from app.hardware.therm_sensor_api import ThermSensorApi
+from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, SensorNotReadyError
 
 
 class ControllerTestCase(unittest.TestCase):
@@ -29,3 +29,20 @@ class ControllerTestCase(unittest.TestCase):
         for sensor_id in self.MOCKED_SENSOR_IDS:
             temperature = controller.get_therm_sensor_temperature(sensor_id)
             self.assertEqual(temperature, self.MOCKED_SENSOR_TEMP[sensor_id])
+
+    def test_should_throw_if_sensor_not_found(self):
+        invalid_sensor_id = "invalid_sensor_id"
+        therm_sensor_api_mock = Mock(spec=ThermSensorApi)
+        therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=NoSensorFoundError(invalid_sensor_id))
+        controller = Controller(therm_sensor_api=therm_sensor_api_mock)
+
+        with self.assertRaises(NoSensorFoundError):
+            controller.get_therm_sensor_temperature(invalid_sensor_id)
+
+    def test_should_throw_if_sensor_not_ready(self):
+        therm_sensor_api_mock = Mock(spec=ThermSensorApi)
+        therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=SensorNotReadyError(self.MOCKED_SENSOR_IDS[0]))
+        controller = Controller(therm_sensor_api=therm_sensor_api_mock)
+
+        with self.assertRaises(SensorNotReadyError):
+            controller.get_therm_sensor_temperature(self.MOCKED_SENSOR_IDS[0])
