@@ -35,12 +35,7 @@ The code requires the dependencies defined in requirements.txt file to be instal
 
 ```  
 pip install -r requirements.txt
-```
-
-In the project's root folder there is also requirements-dev.txt file. It contains dependencies that can be usefull for development. All the libraries defined there should already be installed on Raspberry device. Type the following line to install them in your development environment.
-
-```
-pip install -r requirements-dev.txt
+pip3 install -r requirements.txt
 ```
 
 #### How to run tests ####
@@ -65,6 +60,8 @@ python3 -m app.main
 
 ### Used libraries ###
 * https://github.com/timofurrer/w1thermsensor
+* https://sourceforge.net/p/raspberry-gpio-python/wiki/
+* https://github.com/willbuckner/rpi-gpio-development-mock
 
 ### Contribution guidelines ###
 
