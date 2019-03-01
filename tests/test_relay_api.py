@@ -28,6 +28,7 @@ class RelayApiTest(unittest.TestCase):
 
     def mock_relay_states(self):
         RPi.GPIO.input = Mock(side_effect=gpio_input)
+        RPi.GPIO.output = Mock()
 
     def test_should_return_proper_relay_state(self):
         api = RelayApi()
@@ -36,3 +37,40 @@ class RelayApiTest(unittest.TestCase):
         for relay_index in range(relays_count):
             relay_state = api.get_relay_state(relay_index)
             self.assertEqual(relay_state, gpio_states[RELAY_GPIO_CHANNELS[relay_index]])
+
+    def test_should_raise_error_when_getting_relay_with_invalid_index(self):
+        api = RelayApi()
+
+        with (self.assertRaises(ValueError)):
+            api.get_relay_state(-1)
+
+        with (self.assertRaises(ValueError)):
+            api.get_relay_state(100)
+
+    def test_should_set_proper_relay_state(self):
+        api = RelayApi()
+
+        relays_count = len(RELAY_GPIO_CHANNELS)
+        # generate random states to set
+        relay_states = [random.randint(0, 1) for _ in range(len(RELAY_GPIO_CHANNELS))]
+        for relay_index in range(relays_count):
+            api.set_relay_state(relay_index, relay_states[relay_index])
+            RPi.GPIO.output.assert_called_with(RELAY_GPIO_CHANNELS[relay_index], relay_states[relay_index])
+
+    def test_should_raise_error_when_setting_relay_with_invalid_index(self):
+        api = RelayApi()
+
+        with (self.assertRaises(ValueError)):
+            api.set_relay_state(-1, 0)
+
+        with (self.assertRaises(ValueError)):
+            api.set_relay_state(100, 0)
+
+    def test_should_raise_error_when_setting_relay_to_invalid_state(self):
+        api = RelayApi()
+
+        with (self.assertRaises(ValueError)):
+            api.set_relay_state(0, -1)
+
+        with (self.assertRaises(ValueError)):
+            api.set_relay_state(0, 2)
