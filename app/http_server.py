@@ -1,6 +1,6 @@
 import json
 
-from flask import Flask, Response, abort
+from flask import Flask, Response, abort, request
 import threading
 import sys
 
@@ -15,6 +15,7 @@ SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 80
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"
+URL_RESOURCE_PROGRAMS = "programs"
 
 
 @app.route(URL_PATH + URL_RESOURCE_SENSORS, methods=['GET'])
@@ -36,6 +37,22 @@ def get_therm_sensor_temperature(sensor_id):
         return invalid_request_response(404)
     except SensorNotReadyError:
         return invalid_request_response(403)
+
+
+@app.route(URL_PATH + URL_RESOURCE_PROGRAMS, methods=['GET', 'POST'])
+def programs():
+    if request.method == 'GET':
+        return get_programs()
+    if request.method == 'POST':
+        return create_program(request)
+
+
+def get_programs():
+    pass
+
+
+def create_program(request):
+    pass
 
 
 def valid_request_response(content):

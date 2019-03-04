@@ -16,10 +16,12 @@ class Controller(object):
         Creates controller instance.
         :param therm_sensor_api: Api to obtain therm sensors and their measurements
         :type therm_sensor_api: ThermSensorApi
+        :param relay_api: Api to read and modify relay states
+        :type relay_api: RelayApi
         """
         super().__init__()
-        self.__relay_api = relay_api
         self.__therm_sensor_api = therm_sensor_api
+        self.__relay_api = relay_api
 
     def run(self):
         """
@@ -65,3 +67,4 @@ class Controller(object):
         :rtype: list
         """
         return [self.__relay_api.get_relay_state(relay_index) for relay_index in range(self.RELAYS_COUNT)]
+

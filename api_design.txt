@@ -41,8 +41,8 @@ POST ../programs
 --------------------
 program {
     sensor_id: "sensorId",
-    relay_heating_index: <integer[1..8]>,
-    relay_cooling_index: <integer[1..8]>,
+    heating_relay_index: <integer[1..8]>,
+    cooling_relay_index: <integer[1..8]>,
     program_activation_temp: <float> ?
     temp_min: <float> ?
     temp_max: <float> ?
