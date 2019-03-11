@@ -11,7 +11,8 @@ class Program(object):
     def __init__(self, sensor_id,
                  heating_relay_index, cooling_relay_index,
                  min_temperature, max_temperature,
-                 therm_sensor_api=ThermSensorApi(), relay_api=RelayApi()):
+                 therm_sensor_api=ThermSensorApi(), relay_api=RelayApi(),
+                 active=True):
         """
         Creates program instance.
         :param sensor_id: Id of the thermal sensor to read temperature from
@@ -28,6 +29,8 @@ class Program(object):
         :type therm_sensor_api: ThermSensorApi
         :param relay_api: Api to read and modify relay states
         :type relay_api: RelayApi
+        :param active: Sets the program to activated or deactivated. Deactivated program skips any actions
+        :type active: bool
         """
         super().__init__()
         self.__sensor_id = sensor_id
@@ -37,19 +40,41 @@ class Program(object):
         self.__max_temperature = max_temperature
         self.__relay_api = relay_api
         self.__therm_sensor_api = therm_sensor_api
+        self.__active = active
 
-    def check(self):
+    def update(self):
         """
-        Reads temperature from thermal sensor and takes actions if it's beyond allowed range
+        Reads temperature from thermal sensor and takes actions (enable cooling_active, heating_active) if it's beyond allowed range
         """
+        if not self.active:
+            return
+
         current_temperature = self.__therm_sensor_api.get_sensor_temperature(self.__sensor_id)
-        if current_temperature > self.__max_temperature:
-            self.__set_cooling(True)
-            self.__set_heating(False)
+        cooling_active = current_temperature > self.__max_temperature
+        heating_active = current_temperature < self.__min_temperature
 
-        if current_temperature < self.__min_temperature:
+        self.__set_cooling(cooling_active)
+        self.__set_heating(heating_active)
+
+    @property
+    def active(self):
+        return self.__active
+
+    @active.setter
+    def active(self, active):
+        """
+        Activates or deactivates a program. Activated program will call update automatically. Deactivated program
+        will also deactivate all controlled relays
+        :param active: True to activate the program, False otherwise
+        """
+        if self.__active is active:
+            return
+        self.__active = active
+        if active:
+            self.update()
+        else:
             self.__set_cooling(False)
-            self.__set_heating(True)
+            self.__set_heating(False)
 
     def __set_cooling(self, cooling):
         if self.__cooling_relay_index == -1:
