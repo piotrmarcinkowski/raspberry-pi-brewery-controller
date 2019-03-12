@@ -1,6 +1,6 @@
 from app.hardware.therm_sensor_api import ThermSensorApi
 from app.hardware.relay_api import RelayApi
-
+import json
 
 class Program(object):
     """
@@ -76,6 +76,26 @@ class Program(object):
             self.__set_cooling(False)
             self.__set_heating(False)
 
+    @property
+    def sensor_id(self):
+        return self.__sensor_id
+
+    @property
+    def heating_relay_index(self):
+        return self.__heating_relay_index
+
+    @property
+    def cooling_relay_index(self):
+        return self.__cooling_relay_index
+
+    @property
+    def min_temperature(self):
+        return self.__min_temperature
+
+    @property
+    def max_temperature(self):
+        return self.__max_temperature
+
     def __set_cooling(self, cooling):
         if self.__cooling_relay_index == -1:
             return
@@ -89,3 +109,23 @@ class Program(object):
         relay_state = 1 if heating else 0
         if self.__relay_api.get_relay_state(self.__heating_relay_index) != relay_state:
             self.__relay_api.set_relay_state(self.__heating_relay_index, relay_state)
+
+    def to_json(self):
+        data = {"sensor_id": self.__sensor_id,
+                "heating_relay_index": self.__heating_relay_index,
+                "cooling_relay_index": self.__cooling_relay_index,
+                "min_temp": self.__min_temperature,
+                "max_temp": self.__max_temperature,
+                "active": self.active
+                }
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls, json_str):
+        data = json.loads(json_str)
+        return Program(data["sensor_id"],
+                       data["heating_relay_index"],
+                       data["cooling_relay_index"],
+                       data["min_temp"],
+                       data["max_temp"],
+                       active=data["active"])

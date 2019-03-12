@@ -1,4 +1,5 @@
 import unittest
+import json
 from unittest.mock import Mock
 from program import Program
 
@@ -228,6 +229,57 @@ class TestProgram(unittest.TestCase):
         self.then_cooling_is(0)
         self.then_heating_is(0)
 
+    def test_program_should_serialize_to_json(self):
+        self.givenProgramWithMinMaxTemp(18.0, 18.6)
+        json_str = self.program.to_json()
+        parsed_json = json.loads(json_str)
+        self.assertEqual(parsed_json["sensor_id"], SENSOR_ID)
+        self.assertEqual(parsed_json["heating_relay_index"], HEATING_RELAY_INDEX)
+        self.assertEqual(parsed_json["cooling_relay_index"], COOLING_RELAY_INDEX)
+        self.assertEqual(parsed_json["min_temp"], 18.0)
+        self.assertEqual(parsed_json["max_temp"], 18.6)
+        self.assertEqual(parsed_json["active"], True)
+
+        self.givenProgramWithMinMaxTemp(18.1, 18.5, heating=False, cooling=False, active=False)
+        json_str = self.program.to_json()
+        parsed_json = json.loads(json_str)
+        self.assertEqual(parsed_json["sensor_id"], SENSOR_ID)
+        self.assertEqual(parsed_json["heating_relay_index"], -1)
+        self.assertEqual(parsed_json["cooling_relay_index"], -1)
+        self.assertEqual(parsed_json["min_temp"], 18.1)
+        self.assertEqual(parsed_json["max_temp"], 18.5)
+        self.assertEqual(parsed_json["active"], False)
+
+    def test_program_should_deserialize_from_json(self):
+        json_data = {"sensor_id": "1001",
+                     "heating_relay_index": 2,
+                     "cooling_relay_index": 7,
+                     "min_temp": 17.5,
+                     "max_temp": 18.4,
+                     "active": True}
+        json_str = json.dumps(json_data)
+        program = Program.from_json(json_str)
+        self.assertEqual(program.sensor_id, "1001")
+        self.assertEqual(program.heating_relay_index, 2)
+        self.assertEqual(program.cooling_relay_index, 7)
+        self.assertEqual(program.min_temperature, 17.5)
+        self.assertEqual(program.max_temperature, 18.4)
+        self.assertEqual(program.active, True)
+
+        json_data = {"sensor_id": "1002",
+                     "heating_relay_index": -1,
+                     "cooling_relay_index": -1,
+                     "min_temp": 17.2,
+                     "max_temp": 18.3,
+                     "active": False}
+        json_str = json.dumps(json_data)
+        program = Program.from_json(json_str)
+        self.assertEqual(program.sensor_id, "1002")
+        self.assertEqual(program.heating_relay_index, -1)
+        self.assertEqual(program.cooling_relay_index, -1)
+        self.assertEqual(program.min_temperature, 17.2)
+        self.assertEqual(program.max_temperature, 18.3)
+        self.assertEqual(program.active, False)
 
     def givenProgramWithMinMaxTemp(self, min_temp, max_temp, heating=True, cooling=True, active=True):
         self.program = Program(SENSOR_ID,
@@ -253,3 +305,4 @@ class TestProgram(unittest.TestCase):
 
     def then_cooling_is(self, relay_state):
         self.assertEqual(self.relay_api_mock.get_relay_state(COOLING_RELAY_INDEX), relay_state)
+
