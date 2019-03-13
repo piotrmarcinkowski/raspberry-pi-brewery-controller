@@ -7,9 +7,6 @@ from app.hardware.relay_api import RelayApi
 
 class Controller(object):
     RELAYS_COUNT = 8
-    __therm_sensor_api = None
-    __relay_api = None
-    __sensor_list = None
 
     def __init__(self, therm_sensor_api=ThermSensorApi(), relay_api=RelayApi()):
         """
@@ -20,6 +17,8 @@ class Controller(object):
         :type relay_api: RelayApi
         """
         super().__init__()
+        self.__sensor_list = None
+        self.__programs = []
         self.__therm_sensor_api = therm_sensor_api
         self.__relay_api = relay_api
 
@@ -66,5 +65,40 @@ class Controller(object):
         :return: List with the states of each available relay
         :rtype: list
         """
+
         return [self.__relay_api.get_relay_state(relay_index) for relay_index in range(self.RELAYS_COUNT)]
 
+    def create_program(self, program):
+        """
+        Creates a new program that will monitor temperature at specified therm sensor and control it by activating
+        cooling/heating
+        :param program: Program to create
+        :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
+        """
+
+        for existing_program in self.__programs:
+            if existing_program.sensor_id == program.sensor_id:
+                Logger.warn("Program creation rejected - duplicate sensor_id: {}".format(str(program)))
+                raise ProgramError("Sensor {} is used in other program".format(program.sensor_id))
+            if existing_program.cooling_relay_index == program.cooling_relay_index:
+                Logger.warn("Program creation rejected - duplicate cooling relay: {}".format(str(program)))
+                raise ProgramError("Relay {} is used in other program".format(program.cooling_relay_index))
+            if existing_program.heating_relay_index == program.heating_relay_index:
+                Logger.warn("Program creation rejected - duplicate heating relay: {}".format(str(program)))
+                raise ProgramError("Relay {} is used in other program".format(program.heating_relay_index))
+
+        Logger.info("Program created {}".format(str(program)))
+        self.__programs.append(program)
+
+    def get_programs(self):
+        """
+        Returns existing programs list
+        :return: List of created programs
+        :rtype: list
+        """
+        return self.__programs
+
+
+class ProgramError(Exception):
+    """Exception class for program errors """
+    pass

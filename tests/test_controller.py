@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import Mock
 
-from app.controller import Controller
+from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, SensorNotReadyError
+from program import Program
 
 
 class ControllerTestCase(unittest.TestCase):
@@ -12,37 +13,54 @@ class ControllerTestCase(unittest.TestCase):
     def mock_get_sensor_temp(self, sensor_id):
         return self.MOCKED_SENSOR_TEMP[sensor_id]
 
+    def setUp(self):
+        self.therm_sensor_api_mock = Mock(spec=ThermSensorApi)
+        self.therm_sensor_api_mock.get_sensor_id_list = Mock(return_value=self.MOCKED_SENSOR_IDS)
+        self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=self.mock_get_sensor_temp)
+        self.controller = Controller(therm_sensor_api=self.therm_sensor_api_mock)
+
     def test_should_return_therm_sensor_list(self):
-        therm_sensor_api_mock = Mock(spec=ThermSensorApi)
-        therm_sensor_api_mock.get_sensor_id_list = Mock(return_value=self.MOCKED_SENSOR_IDS)
-        controller = Controller(therm_sensor_api=therm_sensor_api_mock)
-        sensors = controller.get_therm_sensors()
+        sensors = self.controller.get_therm_sensors()
         self.assertEqual(len(sensors), len(self.MOCKED_SENSOR_IDS))
         for index in range(len(self.MOCKED_SENSOR_IDS)):
             self.assertEqual(sensors[index].id, self.MOCKED_SENSOR_IDS[index])
 
     def test_should_return_therm_sensor_temperature(self):
-        therm_sensor_api_mock = Mock(spec=ThermSensorApi)
-        therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=self.mock_get_sensor_temp)
-        controller = Controller(therm_sensor_api=therm_sensor_api_mock)
-
         for sensor_id in self.MOCKED_SENSOR_IDS:
-            temperature = controller.get_therm_sensor_temperature(sensor_id)
+            temperature = self.controller.get_therm_sensor_temperature(sensor_id)
             self.assertEqual(temperature, self.MOCKED_SENSOR_TEMP[sensor_id])
 
     def test_should_throw_if_sensor_not_found(self):
         invalid_sensor_id = "invalid_sensor_id"
-        therm_sensor_api_mock = Mock(spec=ThermSensorApi)
-        therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=NoSensorFoundError(invalid_sensor_id))
-        controller = Controller(therm_sensor_api=therm_sensor_api_mock)
+        self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=NoSensorFoundError(invalid_sensor_id))
 
         with self.assertRaises(NoSensorFoundError):
-            controller.get_therm_sensor_temperature(invalid_sensor_id)
+            self.controller.get_therm_sensor_temperature(invalid_sensor_id)
 
     def test_should_throw_if_sensor_not_ready(self):
-        therm_sensor_api_mock = Mock(spec=ThermSensorApi)
-        therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=SensorNotReadyError(self.MOCKED_SENSOR_IDS[0]))
-        controller = Controller(therm_sensor_api=therm_sensor_api_mock)
+        self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=SensorNotReadyError(self.MOCKED_SENSOR_IDS[0]))
 
         with self.assertRaises(SensorNotReadyError):
-            controller.get_therm_sensor_temperature(self.MOCKED_SENSOR_IDS[0])
+            self.controller.get_therm_sensor_temperature(self.MOCKED_SENSOR_IDS[0])
+
+    def test_should_create_programs_with_given_parameters(self):
+        program1 = Program("1001", 2, 4, 16.5, 17.1)
+        self.controller.create_program(program1)
+        program2 = Program("1002", 1, 5, 16.1, 17.4)
+        self.controller.create_program(program2)
+        programs = self.controller.get_programs()
+        self.assertEqual(programs[0], program1)
+        self.assertEqual(programs[1], program2)
+
+    def test_should_reject_program_that_has_common_part_with_already_created_one(self):
+        program1 = Program("1001", 2, 4, 16.5, 17.1)
+        self.controller.create_program(program1)
+        program2 = Program("1001", 1, 5, 16.1, 17.4)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program2)
+        program2 = Program("1002", 2, 5, 16.1, 17.4)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program2)
+        program2 = Program("1002", 1, 4, 16.1, 17.4)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program2)

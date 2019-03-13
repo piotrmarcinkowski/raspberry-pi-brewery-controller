@@ -2,6 +2,7 @@ from app.hardware.therm_sensor_api import ThermSensorApi
 from app.hardware.relay_api import RelayApi
 import json
 
+
 class Program(object):
     """
     Represents a single program that defines thermal sensor and up to two relays that enable cooling or heating
@@ -129,3 +130,18 @@ class Program(object):
                        data["min_temp"],
                        data["max_temp"],
                        active=data["active"])
+
+    def eq(self, other):
+        if type(other) is type(self):
+            return self.__sensor_id == other.__sensor_id and \
+                   self.__cooling_relay_index == other.__cooling_relay_index and \
+                   self.__heating_relay_index == other.__heating_relay_index and \
+                   self.__min_temperature == other.__min_temperature and \
+                   self.__max_temperature == other.__max_temperature
+
+        return False
+
+    def __str__(self):
+        return "Program [sensor_id:{} heating_relay_index:{} cooling_relay_index:{} min_temp:{} max_temp:{} active:{}]".format(
+            self.sensor_id, self.heating_relay_index, self.cooling_relay_index, self.min_temperature,
+            self.max_temperature, self.active)
