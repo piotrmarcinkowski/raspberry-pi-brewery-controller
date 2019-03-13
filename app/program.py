@@ -111,14 +111,17 @@ class Program(object):
         if self.__relay_api.get_relay_state(self.__heating_relay_index) != relay_state:
             self.__relay_api.set_relay_state(self.__heating_relay_index, relay_state)
 
-    def to_json(self):
-        data = {"sensor_id": self.__sensor_id,
+    def to_json_data(self):
+        return {"sensor_id": self.__sensor_id,
                 "heating_relay_index": self.__heating_relay_index,
                 "cooling_relay_index": self.__cooling_relay_index,
                 "min_temp": self.__min_temperature,
                 "max_temp": self.__max_temperature,
                 "active": self.active
                 }
+
+    def to_json(self):
+        data = self.to_json_data()
         return json.dumps(data)
 
     @classmethod
@@ -137,7 +140,8 @@ class Program(object):
                    self.__cooling_relay_index == other.__cooling_relay_index and \
                    self.__heating_relay_index == other.__heating_relay_index and \
                    self.__min_temperature == other.__min_temperature and \
-                   self.__max_temperature == other.__max_temperature
+                   self.__max_temperature == other.__max_temperature and \
+                   self.__active == other.__active
 
         return False
 

@@ -78,14 +78,18 @@ class Controller(object):
 
         for existing_program in self.__programs:
             if existing_program.sensor_id == program.sensor_id:
-                Logger.warn("Program creation rejected - duplicate sensor_id: {}".format(str(program)))
+                Logger.error("Program creation rejected - duplicate sensor_id: {}".format(str(program)))
                 raise ProgramError("Sensor {} is used in other program".format(program.sensor_id))
             if existing_program.cooling_relay_index == program.cooling_relay_index:
-                Logger.warn("Program creation rejected - duplicate cooling relay: {}".format(str(program)))
+                Logger.error("Program creation rejected - duplicate cooling relay: {}".format(str(program)))
                 raise ProgramError("Relay {} is used in other program".format(program.cooling_relay_index))
             if existing_program.heating_relay_index == program.heating_relay_index:
-                Logger.warn("Program creation rejected - duplicate heating relay: {}".format(str(program)))
+                Logger.error("Program creation rejected - duplicate heating relay: {}".format(str(program)))
                 raise ProgramError("Relay {} is used in other program".format(program.heating_relay_index))
+
+        if program.sensor_id not in self.__therm_sensor_api.get_sensor_id_list():
+            Logger.error("Program creation rejected - invalid sensor_id: {}".format(str(program)))
+            raise ProgramError("Sensor {} is invalid".format(program.sensor_id))
 
         Logger.info("Program created {}".format(str(program)))
         self.__programs.append(program)

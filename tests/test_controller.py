@@ -38,7 +38,8 @@ class ControllerTestCase(unittest.TestCase):
             self.controller.get_therm_sensor_temperature(invalid_sensor_id)
 
     def test_should_throw_if_sensor_not_ready(self):
-        self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=SensorNotReadyError(self.MOCKED_SENSOR_IDS[0]))
+        self.therm_sensor_api_mock.get_sensor_temperature = Mock(
+            side_effect=SensorNotReadyError(self.MOCKED_SENSOR_IDS[0]))
 
         with self.assertRaises(SensorNotReadyError):
             self.controller.get_therm_sensor_temperature(self.MOCKED_SENSOR_IDS[0])
@@ -64,3 +65,13 @@ class ControllerTestCase(unittest.TestCase):
         program2 = Program("1002", 1, 4, 16.1, 17.4)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program2)
+
+    def test_should_reject_program_that_has_invalid_therm_sensor_id(self):
+        invalid_sensor_id = "invalid_sensor_id"
+        program = Program(invalid_sensor_id, 2, 4, 16.5, 17.1)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program)
+
+    def test_should_reject_program_that_has_invalid_relay_index(self):
+        # TODO add this
+        pass

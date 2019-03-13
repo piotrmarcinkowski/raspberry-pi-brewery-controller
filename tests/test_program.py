@@ -281,6 +281,14 @@ class TestProgram(unittest.TestCase):
         self.assertEqual(program.max_temperature, 18.3)
         self.assertEqual(program.active, False)
 
+    def program_should_skip_update_if_sensor_is_not_ready(self):
+        # TODO add this
+        pass
+
+    def program_should_deactivate_if_during_update_sensor_was_not_found(self):
+        # TODO add this
+        pass
+
     def givenProgramWithMinMaxTemp(self, min_temp, max_temp, heating=True, cooling=True, active=True):
         self.program = Program(SENSOR_ID,
                                HEATING_RELAY_INDEX if heating else -1,

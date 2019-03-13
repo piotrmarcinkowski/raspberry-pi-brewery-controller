@@ -4,8 +4,9 @@ from flask import Flask, Response, abort, request
 import threading
 import sys
 
-from app.controller import Controller
+from app.controller import Controller, ProgramError
 from hardware.therm_sensor_api import NoSensorFoundError, SensorNotReadyError
+from program import Program
 
 this_module = sys.modules[__name__]
 __controller = None
@@ -48,14 +49,22 @@ def programs():
 
 
 def get_programs():
-    pass
+    response = []
+    for program in __controller.get_programs():
+        response.append(program.to_json_data())
+    return valid_request_response(json.dumps(response))
 
 
-def create_program(request):
-    pass
+def create_program(req):
+    program = Program.from_json(req.json)
+    try:
+        __controller.create_program(program)
+        return valid_request_response()
+    except ProgramError:
+        return invalid_request_response(403)
 
 
-def valid_request_response(content):
+def valid_request_response(content=""):
     return Response(content, content_type="text/json")
 
 
