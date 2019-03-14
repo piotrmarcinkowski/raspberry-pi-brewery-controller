@@ -125,8 +125,7 @@ class Program(object):
         return json.dumps(data)
 
     @classmethod
-    def from_json(cls, json_str):
-        data = json.loads(json_str)
+    def from_json_data(cls, data):
         return Program(data["sensor_id"],
                        data["heating_relay_index"],
                        data["cooling_relay_index"],
@@ -134,7 +133,12 @@ class Program(object):
                        data["max_temp"],
                        active=data["active"])
 
-    def eq(self, other):
+    @classmethod
+    def from_json(cls, json_str):
+        data = json.loads(json_str)
+        return cls.from_json_data(data)
+
+    def __eq__(self, other):
         if type(other) is type(self):
             return self.__sensor_id == other.__sensor_id and \
                    self.__cooling_relay_index == other.__cooling_relay_index and \
