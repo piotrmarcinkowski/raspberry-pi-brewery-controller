@@ -3,8 +3,8 @@ import uuid
 import os
 from pathlib import Path
 
-from program import Program
-from storage import Storage
+from app.program import Program
+from app.storage import Storage
 
 
 class StorageTestCase(unittest.TestCase):

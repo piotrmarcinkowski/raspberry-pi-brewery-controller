@@ -4,8 +4,8 @@ from unittest.mock import Mock
 
 from app.controller import Controller, ProgramError
 import app.http_server as server
-from hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError
-from program import Program
+from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError
+from app.program import Program
 
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"

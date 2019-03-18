@@ -1,7 +1,8 @@
 import unittest
 import json
 from unittest.mock import Mock
-from program import Program
+from app.program import Program
+from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError
 
 SENSOR_ID = "sensor_id"
 HEATING_RELAY_INDEX = 1
@@ -18,7 +19,14 @@ class ThermSensorApiMock(Mock):
     def set_temperature(self, sensor_id, temperature):
         self.__temperatures[sensor_id] = temperature
 
+    def unset_temperature(self, sensor_id):
+        del self.__temperatures[sensor_id]
+
     def __mocked_get_sensor_temperature(self, sensor_id):
+        if sensor_id not in self.__temperatures:
+            raise NoSensorFoundError(sensor_id)
+        if self.__temperatures[sensor_id] is None:
+            raise SensorNotReadyError(sensor_id)
         return self.__temperatures[sensor_id]
 
 
@@ -229,6 +237,28 @@ class TestProgram(unittest.TestCase):
         self.then_cooling_is(0)
         self.then_heating_is(0)
 
+    def test_program_should_skip_update_if_sensor_is_not_ready(self):
+        self.givenProgramWithMinMaxTemp(18.0, 18.4)
+        # None temperature will raise SensorNotReadyError
+        self.when_temperature_is(None)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+        self.when_temperature_is(18.5)
+        self.then_cooling_is(1)
+        self.then_heating_is(0)
+
+    def test_program_should_deactivate_if_during_update_sensor_was_not_found(self):
+        self.givenProgramWithMinMaxTemp(18.0, 18.4)
+        self.when_temperature_is(18.5)
+        self.then_cooling_is(1)
+        self.then_heating_is(0)
+        # Trying to read temperature that is not available will raise NoSensorFoundError
+        self.therm_sensor_api_mock.unset_temperature(SENSOR_ID)
+        self.program.update()
+        self.assertEqual(self.program.active, False)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+
     def test_program_should_serialize_to_json(self):
         self.givenProgramWithMinMaxTemp(18.0, 18.6)
         json_str = self.program.to_json()
@@ -280,14 +310,6 @@ class TestProgram(unittest.TestCase):
         self.assertEqual(program.min_temperature, 17.2)
         self.assertEqual(program.max_temperature, 18.3)
         self.assertEqual(program.active, False)
-
-    def program_should_skip_update_if_sensor_is_not_ready(self):
-        # TODO add this
-        pass
-
-    def program_should_deactivate_if_during_update_sensor_was_not_found(self):
-        # TODO add this
-        pass
 
     def givenProgramWithMinMaxTemp(self, min_temp, max_temp, heating=True, cooling=True, active=True):
         self.program = Program(SENSOR_ID,

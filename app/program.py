@@ -1,5 +1,6 @@
-from app.hardware.therm_sensor_api import ThermSensorApi
+from app.hardware.therm_sensor_api import ThermSensorApi, SensorNotReadyError, NoSensorFoundError
 from app.hardware.relay_api import RelayApi
+from app.logger import Logger
 import json
 
 
@@ -50,7 +51,16 @@ class Program(object):
         if not self.active:
             return
 
-        current_temperature = self.__therm_sensor_api.get_sensor_temperature(self.__sensor_id)
+        try:
+            current_temperature = self.__therm_sensor_api.get_sensor_temperature(self.__sensor_id)
+        except SensorNotReadyError as e:
+            Logger.error("Program update skipped - sensor not ready - program: {}".format(str(self)))
+            return
+        except NoSensorFoundError:
+            Logger.error("Program update error - not sensor found - deactivating program - program: {}".format(str(self)))
+            self.active = False
+            return
+
         cooling_active = current_temperature > self.__max_temperature
         heating_active = current_temperature < self.__min_temperature
 

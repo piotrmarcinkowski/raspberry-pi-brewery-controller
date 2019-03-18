@@ -1,8 +1,7 @@
 import os
 import json
 from pathlib import Path
-
-from program import Program
+from app.program import Program
 
 
 def get_home_dir_path():

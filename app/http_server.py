@@ -5,8 +5,8 @@ import threading
 import sys
 
 from app.controller import Controller, ProgramError
-from hardware.therm_sensor_api import NoSensorFoundError, SensorNotReadyError
-from program import Program
+from app.hardware.therm_sensor_api import NoSensorFoundError, SensorNotReadyError
+from app.program import Program
 
 this_module = sys.modules[__name__]
 __controller = None

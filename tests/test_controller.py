@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, SensorNotReadyError
-from program import Program
+from app.program import Program
 
 
 class ControllerTestCase(unittest.TestCase):

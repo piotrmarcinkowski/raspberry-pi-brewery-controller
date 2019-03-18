@@ -3,7 +3,6 @@ import unittest
 import random
 from unittest.mock import Mock
 import RPi
-
 from app.hardware.relay_api import RelayApi
 
 this_module = sys.modules[__name__]

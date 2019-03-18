@@ -1,6 +1,4 @@
 import unittest
-import json
-
 from app.therm_sensor import ThermSensor
 
 
