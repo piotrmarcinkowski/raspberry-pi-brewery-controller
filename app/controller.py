@@ -91,6 +91,16 @@ class Controller(object):
             Logger.error("Program creation rejected - invalid sensor_id: {}".format(str(program)))
             raise ProgramError("Sensor {} is invalid".format(program.sensor_id))
 
+        if program.cooling_relay_index < 0 and program.cooling_relay_index != -1 or \
+                program.cooling_relay_index >= Controller.RELAYS_COUNT:
+            Logger.error("Program creation rejected - invalid cooling relay index: {}".format(str(program)))
+            raise ProgramError("Relay {} is invalid".format(program.cooling_relay_index))
+
+        if program.heating_relay_index < 0 and program.heating_relay_index != -1 or \
+                program.heating_relay_index >= Controller.RELAYS_COUNT:
+            Logger.error("Program creation rejected - invalid heating relay index: {}".format(str(program)))
+            raise ProgramError("Relay {} is invalid".format(program.cooling_relay_index))
+
         Logger.info("Program created {}".format(str(program)))
         self.__programs.append(program)
 

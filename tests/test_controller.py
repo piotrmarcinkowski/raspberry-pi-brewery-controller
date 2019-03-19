@@ -73,5 +73,15 @@ class ControllerTestCase(unittest.TestCase):
             self.controller.create_program(program)
 
     def test_should_reject_program_that_has_invalid_relay_index(self):
-        # TODO add this
-        pass
+        program1 = Program("1001", -2, 4, 16.5, 17.1)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program1)
+        program2 = Program("1001", 3, -2, 16.5, 17.1)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program2)
+        program3 = Program("1001", Controller.RELAYS_COUNT, 0, 16.5, 17.1)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program3)
+        program4 = Program("1001", 0, Controller.RELAYS_COUNT, 16.5, 17.1)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program4)

@@ -259,6 +259,23 @@ class TestProgram(unittest.TestCase):
         self.then_cooling_is(0)
         self.then_heating_is(0)
 
+    def test_program_should_stay_deactivated_after_attempt_to_activate_with_missing_sensor(self):
+        self.givenProgramWithMinMaxTemp(18.0, 18.4)
+        self.when_temperature_is(18.5)
+        self.then_cooling_is(1)
+        self.then_heating_is(0)
+        # Trying to read temperature that is not available will raise NoSensorFoundError
+        self.therm_sensor_api_mock.unset_temperature(SENSOR_ID)
+        self.program.update()
+        self.assertEqual(self.program.active, False)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+        # Try to activate deactivated program
+        self.program.active = True
+        self.assertEqual(self.program.active, False)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+
     def test_program_should_serialize_to_json(self):
         self.givenProgramWithMinMaxTemp(18.0, 18.6)
         json_str = self.program.to_json()
