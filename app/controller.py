@@ -3,25 +3,29 @@ from app.hardware.therm_sensor_api import ThermSensorApi
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
+from app.storage import Storage
 from threading import Lock
 
 
 class Controller(object):
     RELAYS_COUNT = 8
 
-    def __init__(self, therm_sensor_api=ThermSensorApi(), relay_api=RelayApi()):
+    def __init__(self, therm_sensor_api=ThermSensorApi(), relay_api=RelayApi(), storage=Storage()):
         """
         Creates controller instance.
         :param therm_sensor_api: Api to obtain therm sensors and their measurements
         :type therm_sensor_api: ThermSensorApi
         :param relay_api: Api to read and modify relay states
         :type relay_api: RelayApi
+        :param storage: Api for storing data
+        :type storage: Storage
         """
         super().__init__()
         self.__sensor_list = None
         self.__programs = []
         self.__therm_sensor_api = therm_sensor_api
         self.__relay_api = relay_api
+        self.__storage = storage
         self.__lock = Lock()
 
     def run(self):
@@ -77,11 +81,19 @@ class Controller(object):
         :param program: Program to create
         :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
         """
+        Logger.info("Create program:{}".format(str(program)))
         self.__lock.acquire()
         try:
             self.__validate_program(program, self.__programs)
-            Logger.info("Program created {}".format(str(program)))
             self.__programs.append(program)
+            try:
+                self.__storage.store_programs(self.__programs)
+                Logger.info("Program created {}".format(str(program)))
+            except Exception as e:
+                # restore programs before adding the new one
+                self.__programs.remove(program)
+                Logger.error("Programs store error {}".format(str(e)))
+                raise ProgramError(str(e))
         finally:
             self.__lock.release()
 
@@ -92,15 +104,22 @@ class Controller(object):
         :param program: Modified program
         :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
                 """
+        Logger.info("Modify program at index:{} with {}".format(program_index, str(program)))
         self.__lock.acquire()
         try:
             if program_index < 0 or program_index >= len(self.__programs):
                 raise ProgramError("Program with index:{} does not exist".format(program_index))
             programs = self.__programs.copy()
+            replaced_program = programs[program_index]
             programs[program_index] = program
             self.__validate_program(program, programs, skip_index=program_index)
-            Logger.info("Program modified {} -> {}".format(str(program), str(self.__programs[program_index])))
-            self.__programs = programs
+            try:
+                self.__storage.store_programs(programs)
+                self.__programs = programs
+                Logger.info("Program modified {} -> {}".format(str(replaced_program), str(program)))
+            except Exception as e:
+                Logger.error("Programs store error {}".format(str(e)))
+                raise ProgramError(str(e))
         finally:
             self.__lock.release()
 
@@ -146,13 +165,21 @@ class Controller(object):
         """
         Deletes specified program, deactivating it first
         """
+        Logger.info("Delete program at index:{}".format(program_index))
         self.__lock.acquire()
         try:
             if program_index < 0 or program_index >= len(self.__programs):
                 raise ProgramError("Invalid program index: {}".format(program_index))
             program = self.__programs.pop(program_index)
-            program.active = False
-            Logger.info("Program deactivated and deleted {}".format(str(program)))
+            try:
+                self.__storage.store_programs(self.__programs)
+                program.active = False
+                Logger.info("Program deactivated and deleted {}".format(str(program)))
+            except Exception as e:
+                # restore deleted program, updated programs list could not be stored
+                self.__programs.insert(program_index, program)
+                Logger.error("Programs store error {}".format(str(e)))
+                raise ProgramError(str(e))
         finally:
             self.__lock.release()
 

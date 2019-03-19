@@ -1,6 +1,6 @@
 import json
 
-from flask import Flask, Response, abort, request
+from flask import Flask, Response, request
 import threading
 import sys
 
@@ -77,6 +77,8 @@ def replace_program(program_index, req):
     try:
         __controller.modify_program(int(program_index), program)
         return valid_request_response()
+    except ValueError as e:
+        return invalid_request_response(500, content=str(e))
     except ProgramError as e:
         return invalid_request_response(403, content=str(e))
 
@@ -85,6 +87,8 @@ def delete_program(program_index):
     try:
         __controller.delete_program(int(program_index))
         return valid_request_response()
+    except ValueError as e:
+        return invalid_request_response(500, content=str(e))
     except ProgramError as e:
         return invalid_request_response(403, content=str(e))
 

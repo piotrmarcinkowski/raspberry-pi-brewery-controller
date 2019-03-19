@@ -4,6 +4,8 @@ from unittest.mock import Mock
 from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, SensorNotReadyError
 from app.program import Program
+from app.hardware.relay_api import RelayApi
+from app.storage import Storage
 
 
 class ControllerTestCase(unittest.TestCase):
@@ -17,7 +19,9 @@ class ControllerTestCase(unittest.TestCase):
         self.therm_sensor_api_mock = Mock(spec=ThermSensorApi)
         self.therm_sensor_api_mock.get_sensor_id_list = Mock(return_value=self.MOCKED_SENSOR_IDS)
         self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=self.mock_get_sensor_temp)
-        self.controller = Controller(therm_sensor_api=self.therm_sensor_api_mock)
+        self.relay_api_mock = Mock(spec=RelayApi)
+        self.storage_mock = Mock(spec=Storage)
+        self.controller = Controller(therm_sensor_api=self.therm_sensor_api_mock, relay_api=self.relay_api_mock, storage=self.storage_mock)
 
     def test_should_return_therm_sensor_list(self):
         sensors = self.controller.get_therm_sensors()
@@ -47,11 +51,23 @@ class ControllerTestCase(unittest.TestCase):
     def test_should_create_programs_with_given_parameters(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
         self.controller.create_program(program1)
+        self.storage_mock.store_programs.assert_called_with([program1])
         program2 = Program("1002", 1, 5, 16.1, 17.4)
         self.controller.create_program(program2)
+        self.storage_mock.store_programs.assert_called_with([program1, program2])
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
+
+    def test_should_reject_created_program_on_error_while_storing(self):
+        program1 = Program("1001", 2, 4, 16.5, 17.1)
+        self.controller.create_program(program1)
+        program2 = Program("1002", 1, 5, 16.1, 17.4)
+        self.storage_mock.store_programs = Mock(side_effect=IOError())
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program2)
+        programs = self.controller.get_programs()
+        self.assertEqual(programs[0], program1)
 
     def test_should_reject_program_that_has_common_part_with_already_created_one(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
@@ -98,6 +114,7 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[0], program2)
         self.assertEqual(programs[1], program3)
         self.assertFalse(program1.active)
+        self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_delete_existing_program_1(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
@@ -111,6 +128,7 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program3)
         self.assertFalse(program2.active)
+        self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_delete_existing_program_2(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
@@ -124,6 +142,7 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
         self.assertFalse(program3.active)
+        self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_raise_when_deleting_program_with_invalid_index(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
@@ -143,6 +162,21 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
 
+    def test_should_leave_programs_intact_on_error_while_saving_after_delete(self):
+        program1 = Program("1001", 2, 4, 16.5, 17.1)
+        self.controller.create_program(program1)
+        program2 = Program("1002", 1, 5, 16.1, 17.4)
+        self.controller.create_program(program2)
+        program3 = Program("1003", 3, 6, 16.0, 17.2)
+        self.controller.create_program(program3)
+        self.storage_mock.store_programs = Mock(side_effect=IOError())
+        with self.assertRaises(ProgramError):
+            self.controller.delete_program(0)
+        programs = self.controller.get_programs()
+        self.assertEqual(programs[0], program1)
+        self.assertEqual(programs[1], program2)
+        self.assertEqual(programs[2], program3)
+
     def test_should_modify_program_with_given_index(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
         self.controller.create_program(program1)
@@ -153,8 +187,25 @@ class ControllerTestCase(unittest.TestCase):
         modified_program2 = Program("1004", 0, 7, 15.8, 15.9, False)
         self.controller.modify_program(1, modified_program2)
         programs = self.controller.get_programs()
+        self.storage_mock.store_programs.assert_called_with(programs)
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], modified_program2)
+        self.assertEqual(programs[2], program3)
+
+    def test_should_reject_modified_program_on_error_while_storing(self):
+        program1 = Program("1001", 2, 4, 16.5, 17.1)
+        self.controller.create_program(program1)
+        program2 = Program("1002", 1, 5, 16.1, 17.4)
+        self.controller.create_program(program2)
+        program3 = Program("1003", 3, 6, 16.0, 17.2)
+        self.controller.create_program(program3)
+        modified_program2 = Program("1004", 0, 7, 15.8, 15.9, False)
+        self.storage_mock.store_programs = Mock(side_effect=IOError())
+        with self.assertRaises(ProgramError):
+            self.controller.modify_program(1, modified_program2)
+        programs = self.controller.get_programs()
+        self.assertEqual(programs[0], program1)
+        self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
 
     def test_should_raise_if_modifying_program_with_invalid_index(self):
