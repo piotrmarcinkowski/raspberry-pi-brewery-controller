@@ -34,10 +34,10 @@ def get_therm_sensor_temperature(sensor_id):
         temperature = __controller.get_therm_sensor_temperature(sensor_id)
         response = {"id": sensor_id, "temperature": temperature}
         return valid_request_response(json.dumps(response))
-    except NoSensorFoundError:
-        return invalid_request_response(404)
-    except SensorNotReadyError:
-        return invalid_request_response(403)
+    except NoSensorFoundError as e:
+        return invalid_request_response(404, content=str(e))
+    except SensorNotReadyError as e:
+        return invalid_request_response(403, content=str(e))
 
 
 @app.route(URL_PATH + URL_RESOURCE_PROGRAMS, methods=['GET', 'POST'])
@@ -60,8 +60,33 @@ def create_program(req):
     try:
         __controller.create_program(program)
         return valid_request_response()
-    except ProgramError:
-        return invalid_request_response(403)
+    except ProgramError as e:
+        return invalid_request_response(403, content=str(e))
+
+
+@app.route(URL_PATH + URL_RESOURCE_PROGRAMS + "/<program_index>", methods=['PUT', 'DELETE'])
+def modify_program(program_index):
+    if request.method == 'PUT':
+        return replace_program(program_index, request)
+    if request.method == 'DELETE':
+        return delete_program(program_index)
+
+
+def replace_program(program_index, req):
+    program = Program.from_json(req.json)
+    try:
+        __controller.modify_program(int(program_index), program)
+        return valid_request_response()
+    except ProgramError as e:
+        return invalid_request_response(403, content=str(e))
+
+
+def delete_program(program_index):
+    try:
+        __controller.delete_program(int(program_index))
+        return valid_request_response()
+    except ProgramError as e:
+        return invalid_request_response(403, content=str(e))
 
 
 def valid_request_response(content=""):

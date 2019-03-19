@@ -14,6 +14,7 @@ URL_RESOURCE_PROGRAMS = "programs"
 
 class ControllerMock(Mock):
     MOCKED_NOT_READY_SENSOR_ID = "not_ready_sensor"
+    DEFAULT_ERROR_MESSAGE = "Error message"
 
     MOCKED_SENSORS = [
         {"id": "1001", "name": "sensor_1"},
@@ -33,12 +34,20 @@ class ControllerMock(Mock):
         self.get_therm_sensors = Mock(return_value=self.sensor_mock_list)
         self.get_therm_sensor_temperature = Mock(side_effect=self.__mocked_get_sensor_temperature)
         self.create_program = Mock(side_effect=self.__mocked_create_program)
+        self.modify_program = Mock(side_effect=self.__mocked_modify_program)
+        self.delete_program = Mock(side_effect=self.__mocked_delete_program)
         self.get_programs = Mock(side_effect=self.__mocked_get_programs)
         self.programs = []
         self.__temperatures = {}
 
     def raise_error_on_program_create(self):
-        self.create_program = Mock(side_effect=ProgramError())
+        self.create_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
+
+    def raise_error_on_program_modify(self):
+        self.modify_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
+
+    def raise_error_on_program_delete(self):
+        self.delete_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
 
     def __prepare_sensor_list(self):
         self.sensor_mock_list = []
@@ -58,6 +67,12 @@ class ControllerMock(Mock):
 
     def __mocked_create_program(self, program):
         self.programs.append(program)
+
+    def __mocked_modify_program(self, program_index, program):
+        self.programs[program_index] = program
+
+    def __mocked_delete_program(self, program_index):
+        del self.programs[program_index]
 
     def __mocked_get_programs(self):
         return self.programs
@@ -105,13 +120,13 @@ class HttpServerTestCase(unittest.TestCase):
         sensor_id = "invalid_sensor_id"
         response = self.app.get(URL_PATH + URL_RESOURCE_SENSORS + "/" + sensor_id, follow_redirects=True)
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data, b"")
+        self.assertNotEqual(response.data, b"")
 
     def test_should_return_status_403_when_sensor_not_ready(self):
         sensor_id = ControllerMock.MOCKED_NOT_READY_SENSOR_ID
         response = self.app.get(URL_PATH + URL_RESOURCE_SENSORS + "/" + sensor_id, follow_redirects=True)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data, b"")
+        self.assertNotEqual(response.data, b"")
 
     def test_should_create_program(self):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
@@ -128,14 +143,76 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(created_program.max_temperature, request_content["max_temp"])
         self.assertEqual(created_program.active, request_content["active"])
 
-    def test_should_reject_program_with_properties_duplicated_with_existing_program(self):
+    def test_should_modify_program(self):
+        request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+                           "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
+        response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
+                                 json=json.dumps(request_content))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, b"")
+
+        request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[1]["id"], "heating_relay_index": 3,
+                           "cooling_relay_index": 4, "min_temp": 17.0, "max_temp": 19.0, "active": False}
+        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
+                                 json=json.dumps(request_content))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, b"")
+
+        modified_program = self.controller_mock.programs[0]
+        self.assertEqual(modified_program.sensor_id, request_content["sensor_id"])
+        self.assertEqual(modified_program.cooling_relay_index, request_content["cooling_relay_index"])
+        self.assertEqual(modified_program.heating_relay_index, request_content["heating_relay_index"])
+        self.assertEqual(modified_program.min_temperature, request_content["min_temp"])
+        self.assertEqual(modified_program.max_temperature, request_content["max_temp"])
+        self.assertEqual(modified_program.active, request_content["active"])
+
+    def test_should_delete_program(self):
+        request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+                           "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
+        response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
+                                 json=json.dumps(request_content))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, b"")
+
+        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, b"")
+        self.assertEqual(len(self.controller_mock.programs), 0)
+
+    def test_should_return_status_403_when_program_creation_was_rejected(self):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         self.controller_mock.raise_error_on_program_create()
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=json.dumps(request_content))
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data, b"")
+        self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
+
+    def test_should_return_status_403_when_program_modification_was_rejected(self):
+        request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+                           "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
+        self.controller_mock.raise_error_on_program_modify()
+        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
+                                 json=json.dumps(request_content))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
+
+    def test_should_return_status_500_on_modify_when_error_parsing_program_index(self):
+        request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+                           "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
+        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/not_int", follow_redirects=True,
+                                 json=json.dumps(request_content))
+        self.assertEqual(response.status_code, 500)
+
+    def test_should_return_status_403_when_program_deletion_was_rejected(self):
+        self.controller_mock.raise_error_on_program_delete()
+        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
+
+    def test_should_return_status_500_on_delete_when_error_parsing_program_index(self):
+        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/not_int", follow_redirects=True)
+        self.assertEqual(response.status_code, 500)
 
     def test_should_return_existing_programs(self):
         self.controller_mock.programs.append(Program("sensor_id1", 2, 4, 15.0, 15.5, active=True))

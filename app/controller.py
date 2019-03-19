@@ -3,6 +3,7 @@ from app.hardware.therm_sensor_api import ThermSensorApi
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
+from threading import Lock
 
 
 class Controller(object):
@@ -21,6 +22,7 @@ class Controller(object):
         self.__programs = []
         self.__therm_sensor_api = therm_sensor_api
         self.__relay_api = relay_api
+        self.__lock = Lock()
 
     def run(self):
         """
@@ -75,34 +77,58 @@ class Controller(object):
         :param program: Program to create
         :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
         """
+        self.__lock.acquire()
+        try:
+            self.__validate_program(program, self.__programs)
+            Logger.info("Program created {}".format(str(program)))
+            self.__programs.append(program)
+        finally:
+            self.__lock.release()
 
-        for existing_program in self.__programs:
+    def modify_program(self, program_index, program):
+        """
+        Modifies existing program
+        :param program_index: Program index to replace
+        :param program: Modified program
+        :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
+                """
+        self.__lock.acquire()
+        try:
+            if program_index < 0 or program_index >= len(self.__programs):
+                raise ProgramError("Program with index:{} does not exist".format(program_index))
+            programs = self.__programs.copy()
+            programs[program_index] = program
+            self.__validate_program(program, programs, skip_index=program_index)
+            Logger.info("Program modified {} -> {}".format(str(program), str(self.__programs[program_index])))
+            self.__programs = programs
+        finally:
+            self.__lock.release()
+
+    def __validate_program(self, program, existing_programs, skip_index=-1):
+        for index in range(len(existing_programs)):
+            if index == skip_index:
+                continue
+            existing_program = existing_programs[index]
             if existing_program.sensor_id == program.sensor_id:
-                Logger.error("Program creation rejected - duplicate sensor_id: {}".format(str(program)))
+                Logger.error("Program rejected - duplicate sensor_id: {}".format(str(program)))
                 raise ProgramError("Sensor {} is used in other program".format(program.sensor_id))
             if existing_program.cooling_relay_index == program.cooling_relay_index:
-                Logger.error("Program creation rejected - duplicate cooling relay: {}".format(str(program)))
+                Logger.error("Program rejected - duplicate cooling relay: {}".format(str(program)))
                 raise ProgramError("Relay {} is used in other program".format(program.cooling_relay_index))
             if existing_program.heating_relay_index == program.heating_relay_index:
-                Logger.error("Program creation rejected - duplicate heating relay: {}".format(str(program)))
+                Logger.error("Program rejected - duplicate heating relay: {}".format(str(program)))
                 raise ProgramError("Relay {} is used in other program".format(program.heating_relay_index))
-
         if program.sensor_id not in self.__therm_sensor_api.get_sensor_id_list():
-            Logger.error("Program creation rejected - invalid sensor_id: {}".format(str(program)))
+            Logger.error("Program rejected - invalid sensor_id: {}".format(str(program)))
             raise ProgramError("Sensor {} is invalid".format(program.sensor_id))
-
         if program.cooling_relay_index < 0 and program.cooling_relay_index != -1 or \
                 program.cooling_relay_index >= Controller.RELAYS_COUNT:
-            Logger.error("Program creation rejected - invalid cooling relay index: {}".format(str(program)))
+            Logger.error("Program rejected - invalid cooling relay index: {}".format(str(program)))
             raise ProgramError("Relay {} is invalid".format(program.cooling_relay_index))
-
         if program.heating_relay_index < 0 and program.heating_relay_index != -1 or \
                 program.heating_relay_index >= Controller.RELAYS_COUNT:
-            Logger.error("Program creation rejected - invalid heating relay index: {}".format(str(program)))
+            Logger.error("Program rejected - invalid heating relay index: {}".format(str(program)))
             raise ProgramError("Relay {} is invalid".format(program.cooling_relay_index))
-
-        Logger.info("Program created {}".format(str(program)))
-        self.__programs.append(program)
 
     def get_programs(self):
         """
@@ -110,7 +136,25 @@ class Controller(object):
         :return: List of created programs
         :rtype: list
         """
-        return self.__programs
+        self.__lock.acquire()
+        try:
+            return self.__programs
+        finally:
+            self.__lock.release()
+
+    def delete_program(self, program_index):
+        """
+        Deletes specified program, deactivating it first
+        """
+        self.__lock.acquire()
+        try:
+            if program_index < 0 or program_index >= len(self.__programs):
+                raise ProgramError("Invalid program index: {}".format(program_index))
+            program = self.__programs.pop(program_index)
+            program.active = False
+            Logger.info("Program deactivated and deleted {}".format(str(program)))
+        finally:
+            self.__lock.release()
 
 
 class ProgramError(Exception):
