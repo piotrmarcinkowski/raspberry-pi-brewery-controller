@@ -266,6 +266,18 @@ class ControllerTestCase(unittest.TestCase):
         program2.update.assert_called_with()
         program3.update.assert_called_with()
 
+    def test_should_reject_sensor_name_change_for_non_existing_sensor(self):
+        with self.assertRaises(NoSensorFoundError):
+            self.controller.set_therm_sensor_name("invalid_sensor_id", "sensor_name")
+
+    def test_should_set_sensor_name_and_return_modified_sensor(self):
+        sensor = self.controller.set_therm_sensor_name("1001", "sensor_name")
+        self.assertEqual(sensor.id, "1001")
+        self.assertEqual(sensor.name, "sensor_name")
+
+    def test_returned_sensor_list_should_contain_sensor_with_modified_name(self):
+        sensor = self.controller.set_therm_sensor_name("1001", "sensor_name")
+        self.assertTrue(sensor in self.controller.get_therm_sensors())
 
 
 class TestMainLoopExitCondition:

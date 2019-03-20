@@ -1,10 +1,10 @@
 class ThermSensor(object):
     """Single temperature sensor"""
 
-    def __init__(self, sensor_id):
+    def __init__(self, sensor_id, name=""):
         super(ThermSensor, self).__init__()
         self.__sensor_id = sensor_id
-        self.__name = ""
+        self.__name = name
 
     @property
     def id(self):
@@ -13,7 +13,3 @@ class ThermSensor(object):
     @property
     def name(self):
         return self.__name
-
-    @name.setter
-    def name(self, name):
-        self.__name = name

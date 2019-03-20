@@ -1,6 +1,6 @@
 import time
 import atexit
-from app.hardware.therm_sensor_api import ThermSensorApi
+from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
@@ -92,6 +92,26 @@ class Controller(object):
         """
 
         return self.__therm_sensor_api.get_sensor_temperature(sensor_id)
+
+    def set_therm_sensor_name(self, sensor_id, name):
+        """
+        Sets a name for given therm sensor making it easier to distinguish
+        :param sensor_id: therm sensor id
+        :param name: name to assign to the sensor
+        :return: Returns sensor object with name set
+        :rtype: ThermSensor
+        """
+        sensor_to_modify = None
+        existing_sensors = self.get_therm_sensors()
+        for sensor in existing_sensors:
+            if sensor.id == sensor_id:
+                sensor_to_modify = sensor
+                break
+
+        if sensor_to_modify is None:
+            raise NoSensorFoundError(sensor_id)
+
+        return ThermSensor(sensor_id, name)
 
     def get_relays_state(self):
         """

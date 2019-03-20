@@ -15,11 +15,6 @@ class ThermSensorTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.sensor.id = "someOtherId"
 
-    def test_should_return_name_that_was_set(self):
-        self.assertEqual(self.sensor.name, "")
-        self.sensor.name = "test_name"
-        self.assertEqual(self.sensor.name, "test_name")
-
 
 if __name__ == '__main__':
     unittest.main()
