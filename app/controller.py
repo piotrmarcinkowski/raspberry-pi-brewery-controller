@@ -28,16 +28,34 @@ class Controller(object):
         self.__storage = storage
         self.__lock = Lock()
 
-    def run(self):
+    @staticmethod
+    def __default_main_loop_exit_condition():
+        # Never exit main loop by default, keep program running
+        return False
+
+    def run(self, interval_secs=1.0, main_loop_exit_condition=__default_main_loop_exit_condition):
         """
         Start controller. After this function is called the controller will periodically update active programs to
-        maintain requested temperature by turning on/off coolers attached to relays
+        maintain requested temperature by turning on/off coolers/heaters attached to relays
         """
         Logger.info("Starting controller")
-        while True:
-            time.sleep(1)
-            pass
+        self.__load_programs()
+
+        while not main_loop_exit_condition():
+            programs = self.get_programs()
+            for program in programs:
+                program.update()
+            time.sleep(interval_secs)
         Logger.info("Controller stopped")
+
+    def __load_programs(self):
+        Logger.info("Loading programs")
+        self.__lock.acquire()
+        try:
+            self.__programs = self.__storage.load_programs()
+        finally:
+            self.__lock.release()
+        Logger.info("Programs loaded {}".format(self.__programs))
 
     def get_therm_sensors(self):
         """
@@ -187,3 +205,6 @@ class Controller(object):
 class ProgramError(Exception):
     """Exception class for program errors """
     pass
+
+
+

@@ -21,7 +21,10 @@ class ControllerTestCase(unittest.TestCase):
         self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=self.mock_get_sensor_temp)
         self.relay_api_mock = Mock(spec=RelayApi)
         self.storage_mock = Mock(spec=Storage)
-        self.controller = Controller(therm_sensor_api=self.therm_sensor_api_mock, relay_api=self.relay_api_mock, storage=self.storage_mock)
+        self.controller = Controller(
+            therm_sensor_api=self.therm_sensor_api_mock,
+            relay_api=self.relay_api_mock,
+            storage=self.storage_mock)
 
     def test_should_return_therm_sensor_list(self):
         sensors = self.controller.get_therm_sensors()
@@ -247,3 +250,30 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
+
+    def test_run_should_behave_properly(self):
+        program1 = Mock(spec=Program)
+        program2 = Mock(spec=Program)
+        program3 = Mock(spec=Program)
+        self.storage_mock.load_programs = Mock(return_value=[program1, program2, program3])
+
+        main_loop_exit_condition = TestMainLoopExitCondition()
+        self.controller.run(
+            interval_secs=0.01,
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop_after_first_iteration)
+
+        program1.update.assert_called_with()
+        program2.update.assert_called_with()
+        program3.update.assert_called_with()
+
+
+
+class TestMainLoopExitCondition:
+    def __init__(self) -> None:
+        super().__init__()
+        self.called = False
+
+    def should_exit_main_loop_after_first_iteration(self):
+        called = self.called
+        self.called = True
+        return called
