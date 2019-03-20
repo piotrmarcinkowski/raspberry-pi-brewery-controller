@@ -40,7 +40,7 @@ class Controller(object):
         maintain requested temperature by turning on/off coolers/heaters attached to relays
         """
         Logger.info("Starting controller")
-        atexit.register(self.__cleanUp)
+        atexit.register(self.__clean_up)
         self.__load_programs()
 
         while not main_loop_exit_condition():
@@ -50,7 +50,7 @@ class Controller(object):
             time.sleep(interval_secs)
         Logger.info("Controller stopped")
 
-    def __cleanUp(self):
+    def __clean_up(self):
         Logger.info("Cleaning up")
 
         Logger.info("Deactivating all programs")
@@ -112,14 +112,14 @@ class Controller(object):
         Logger.info("Create program:{}".format(str(program)))
         self.__lock.acquire()
         try:
-            self.__validate_program(program, self.__programs)
-            self.__programs.append(program)
+            programs = self.__programs.copy()
+            self.__validate_program(program, programs)
+            programs.append(program)
             try:
-                self.__storage.store_programs(self.__programs)
+                self.__storage.store_programs(programs)
                 Logger.info("Program created {}".format(str(program)))
+                self.__programs = programs
             except Exception as e:
-                # restore programs before adding the new one
-                self.__programs.remove(program)
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))
         finally:
@@ -198,14 +198,14 @@ class Controller(object):
         try:
             if program_index < 0 or program_index >= len(self.__programs):
                 raise ProgramError("Invalid program index: {}".format(program_index))
-            program = self.__programs.pop(program_index)
+            programs = self.__programs.copy()
+            program = programs.pop(program_index)
             try:
-                self.__storage.store_programs(self.__programs)
+                self.__storage.store_programs(programs)
                 program.active = False
                 Logger.info("Program deactivated and deleted {}".format(str(program)))
+                self.__programs = programs
             except Exception as e:
-                # restore deleted program, updated programs list could not be stored
-                self.__programs.insert(program_index, program)
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))
         finally:

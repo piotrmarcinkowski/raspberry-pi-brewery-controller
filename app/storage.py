@@ -27,6 +27,7 @@ class Storage(object):
         output_file = os.path.join(self.storage_root_dir, self.programs_file)
         json_data = [program.to_json_data() for program in programs]
         json_output = json.dumps(json_data)
+        # TODO: For safety write to temp file first, then replace
         with open(output_file, "w") as file:
             file.write(json_output)
 
