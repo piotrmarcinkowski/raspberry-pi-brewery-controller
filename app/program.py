@@ -57,7 +57,7 @@ class Program(object):
             Logger.error("Program update skipped - sensor not ready - program: {}".format(str(self)))
             return
         except NoSensorFoundError:
-            Logger.error("Program update error - not sensor found - deactivating program - program: {}".format(str(self)))
+            Logger.error("Program update error - no sensor found - deactivating program - program: {}".format(str(self)))
             self.active = False
             return
 

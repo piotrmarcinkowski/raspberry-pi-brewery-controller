@@ -1,4 +1,5 @@
 import time
+import atexit
 from app.hardware.therm_sensor_api import ThermSensorApi
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
@@ -39,6 +40,7 @@ class Controller(object):
         maintain requested temperature by turning on/off coolers/heaters attached to relays
         """
         Logger.info("Starting controller")
+        atexit.register(self.__cleanUp)
         self.__load_programs()
 
         while not main_loop_exit_condition():
@@ -47,6 +49,14 @@ class Controller(object):
                 program.update()
             time.sleep(interval_secs)
         Logger.info("Controller stopped")
+
+    def __cleanUp(self):
+        Logger.info("Cleaning up")
+
+        Logger.info("Deactivating all programs")
+        programs = self.get_programs()
+        for program in programs:
+            program.active = False
 
     def __load_programs(self):
         Logger.info("Loading programs")
