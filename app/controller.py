@@ -1,11 +1,11 @@
 import time
 import atexit
-from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError
+from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, ThermSensorError
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
 from app.storage import Storage
-from threading import Lock
+from threading import RLock
 
 
 class Controller(object):
@@ -22,16 +22,16 @@ class Controller(object):
         :type storage: Storage
         """
         super().__init__()
-        self.__sensor_list = None
+        self.__sensors = None
         self.__programs = []
         self.__therm_sensor_api = therm_sensor_api
         self.__relay_api = relay_api
         self.__storage = storage
-        self.__lock = Lock()
+        self.__lock = RLock()
 
     @staticmethod
     def __default_main_loop_exit_condition():
-        # Never exit main loop by default, keep program running
+        # Never exit main loop by default, keep the program running, this is needed to alter the behavior in tests only
         return False
 
     def run(self, interval_secs=1.0, main_loop_exit_condition=__default_main_loop_exit_condition):
@@ -41,8 +41,10 @@ class Controller(object):
         """
         Logger.info("Starting controller")
         atexit.register(self.__clean_up)
+        Logger.info("Loading programs")
         self.__load_programs()
 
+        Logger.info("Staring main loop")
         while not main_loop_exit_condition():
             programs = self.get_programs()
             for program in programs:
@@ -74,11 +76,22 @@ class Controller(object):
         :rtype: list
         """
 
-        if self.__sensor_list is None:
-            sensor_ids = self.__therm_sensor_api.get_sensor_id_list()
-            self.__sensor_list = [ThermSensor(sensor_id) for sensor_id in sensor_ids]
+        self.__lock.acquire()
+        try:
+            if self.__sensors is None:
+                sensors = []
+                stored_sensors = {sensor.id: sensor for sensor in self.__storage.load_sensors()}
+                existing_sensor_ids = self.__therm_sensor_api.get_sensor_id_list()
+                for existing_sensor_id in existing_sensor_ids:
+                    if existing_sensor_id in stored_sensors:
+                        sensors.append(stored_sensors[existing_sensor_id])
+                    else:
+                        sensors.append(ThermSensor(existing_sensor_id))
+                self.__sensors = sensors
 
-        return self.__sensor_list
+            return self.__sensors
+        finally:
+            self.__lock.release()
 
     def get_therm_sensor_temperature(self, sensor_id):
         """
@@ -100,18 +113,32 @@ class Controller(object):
         :param name: name to assign to the sensor
         :return: Returns sensor object with name set
         :rtype: ThermSensor
+        :raises NoSensorFoundError: when a sensor with given sensor_id was not found
+        :raises ThermSensorError: when there was other problem with setting sensor name
         """
-        sensor_to_modify = None
-        existing_sensors = self.get_therm_sensors()
-        for sensor in existing_sensors:
-            if sensor.id == sensor_id:
-                sensor_to_modify = sensor
-                break
+        Logger.info("Set sensor name {}->{}".format(sensor_id, name))
+        self.__lock.acquire()
+        try:
+            sensors = self.get_therm_sensors().copy()
+            modified_sensor = None
+            for index in range(len(sensors)):
+                if sensors[index].id == sensor_id:
+                    modified_sensor = ThermSensor(sensor_id, name)
+                    sensors[index] = modified_sensor
 
-        if sensor_to_modify is None:
-            raise NoSensorFoundError(sensor_id)
+            if modified_sensor is None:
+                raise NoSensorFoundError(sensor_id)
 
-        return ThermSensor(sensor_id, name)
+            try:
+                self.__storage.store_sensors(sensors)
+                Logger.info("Sensors stored {}".format(str(sensors)))
+                self.__sensors = sensors
+                return modified_sensor
+            except Exception as e:
+                Logger.error("Sensors store error {}".format(str(e)))
+                raise ThermSensorError()
+        finally:
+            self.__lock.release()
 
     def get_relays_state(self):
         """
@@ -234,7 +261,9 @@ class Controller(object):
 
 class ProgramError(Exception):
     """Exception class for program errors """
-    pass
+
+    def __init__(self, message=""):
+        super().__init__(message)
 
 
 

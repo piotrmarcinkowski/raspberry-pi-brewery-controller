@@ -8,6 +8,29 @@ from app.hardware.relay_api import RelayApi
 from app.storage import Storage
 
 
+class StorageMock(Mock):
+    def __init__(self, programs=[], sensors=[]):
+        super().__init__(spec=Storage)
+        self.store_sensors = Mock(side_effect=self.__store_sensors_mock)
+        self.load_sensors = Mock(side_effect=self.__load_sensors_mock)
+        self.store_programs = Mock(side_effect=self.__store_programs)
+        self.load_programs = Mock(side_effect=self.__load_programs)
+        self.__programs = programs
+        self.__sensors = sensors
+
+    def __load_sensors_mock(self):
+        return self.__sensors
+
+    def __store_sensors_mock(self, sensors):
+        self.__sensors = sensors
+
+    def __store_programs(self, programs):
+        self.__programs = programs
+
+    def __load_programs(self):
+        return self.__programs
+
+
 class ControllerTestCase(unittest.TestCase):
     MOCKED_SENSOR_IDS = ["1001", "1002", "1003", "1004"]
     MOCKED_SENSOR_TEMP = {"1001": 12.3, "1002": 23.4, "1003": 22.0, "1004": 19.4}
@@ -20,7 +43,7 @@ class ControllerTestCase(unittest.TestCase):
         self.therm_sensor_api_mock.get_sensor_id_list = Mock(return_value=self.MOCKED_SENSOR_IDS)
         self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=self.mock_get_sensor_temp)
         self.relay_api_mock = Mock(spec=RelayApi)
-        self.storage_mock = Mock(spec=Storage)
+        self.storage_mock = StorageMock()
         self.controller = Controller(
             therm_sensor_api=self.therm_sensor_api_mock,
             relay_api=self.relay_api_mock,
@@ -255,7 +278,7 @@ class ControllerTestCase(unittest.TestCase):
         program1 = Mock(spec=Program)
         program2 = Mock(spec=Program)
         program3 = Mock(spec=Program)
-        self.storage_mock.load_programs = Mock(return_value=[program1, program2, program3])
+        self.storage_mock = StorageMock(programs=[program1, program2, program3])
 
         main_loop_exit_condition = TestMainLoopExitCondition()
         self.controller.run(
@@ -271,8 +294,8 @@ class ControllerTestCase(unittest.TestCase):
             self.controller.set_therm_sensor_name("invalid_sensor_id", "sensor_name")
 
     def test_should_set_sensor_name_and_return_modified_sensor(self):
-        sensor = self.controller.set_therm_sensor_name("1001", "sensor_name")
-        self.assertEqual(sensor.id, "1001")
+        sensor = self.controller.set_therm_sensor_name(self.MOCKED_SENSOR_IDS[0], "sensor_name")
+        self.assertEqual(sensor.id, self.MOCKED_SENSOR_IDS[0])
         self.assertEqual(sensor.name, "sensor_name")
 
     def test_returned_sensor_list_should_contain_sensor_with_modified_name(self):
