@@ -13,8 +13,8 @@ class StorageMock(Mock):
         super().__init__(spec=Storage)
         self.store_sensors = Mock(side_effect=self.__store_sensors_mock)
         self.load_sensors = Mock(side_effect=self.__load_sensors_mock)
-        self.store_programs = Mock(side_effect=self.__store_programs)
-        self.load_programs = Mock(side_effect=self.__load_programs)
+        self.store_programs = Mock(side_effect=self.__store_programs_mock)
+        self.load_programs = Mock(side_effect=self.__load_programs_mock)
         self.__programs = programs
         self.__sensors = sensors
 
@@ -24,10 +24,10 @@ class StorageMock(Mock):
     def __store_sensors_mock(self, sensors):
         self.__sensors = sensors
 
-    def __store_programs(self, programs):
+    def __store_programs_mock(self, programs):
         self.__programs = programs
 
-    def __load_programs(self):
+    def __load_programs_mock(self):
         return self.__programs
 
 
@@ -274,13 +274,18 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
 
-    def test_run_should_behave_properly(self):
+    def test_should_load_programs_and_start_updating_them_when_run(self):
         program1 = Mock(spec=Program)
         program2 = Mock(spec=Program)
         program3 = Mock(spec=Program)
         self.storage_mock = StorageMock(programs=[program1, program2, program3])
 
         main_loop_exit_condition = TestMainLoopExitCondition()
+        self.controller = Controller(
+            therm_sensor_api=self.therm_sensor_api_mock,
+            relay_api=self.relay_api_mock,
+            storage=self.storage_mock)
+
         self.controller.run(
             interval_secs=0.01,
             main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop_after_first_iteration)
