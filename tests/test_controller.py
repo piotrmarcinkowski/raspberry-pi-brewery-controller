@@ -280,7 +280,8 @@ class ControllerTestCase(unittest.TestCase):
         program3 = Mock(spec=Program)
         self.storage_mock = StorageMock(programs=[program1, program2, program3])
 
-        main_loop_exit_condition = TestMainLoopExitCondition()
+        main_loop_exit_condition = TestLoopExitCondition()
+
         self.controller = Controller(
             therm_sensor_api=self.therm_sensor_api_mock,
             relay_api=self.relay_api_mock,
@@ -288,11 +289,31 @@ class ControllerTestCase(unittest.TestCase):
 
         self.controller.run(
             interval_secs=0.01,
-            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop_after_first_iteration)
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
 
         program1.update.assert_called_with()
         program2.update.assert_called_with()
         program3.update.assert_called_with()
+
+    def test_should_start_updating_created_program(self):
+        program = Mock(spec=Program)
+        program.sensor_id = "1001"
+        program.cooling_relay_index = 1
+        program.heating_relay_index = 2
+        program.min_temperature = 18
+        program.max_temperature = 19
+
+        # the following task will be run on iteration 2, simulating program creation
+        create_program_task = CreateProgramTask(2, self.controller, program)
+        main_loop_exit_condition = TestLoopExitCondition(max_iterations=3)
+        main_loop_exit_condition.add_task(create_program_task)
+
+        self.controller.run(
+            interval_secs=0.01,
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
+
+        # test if program gets updated after being added to controller
+        program.update.assert_called_with()
 
     def test_should_reject_sensor_name_change_for_non_existing_sensor(self):
         with self.assertRaises(NoSensorFoundError):
@@ -308,12 +329,61 @@ class ControllerTestCase(unittest.TestCase):
         self.assertTrue(sensor in self.controller.get_therm_sensors())
 
 
-class TestMainLoopExitCondition:
-    def __init__(self) -> None:
-        super().__init__()
-        self.called = False
+class IterationTask:
+    """
+    Class implements simple task that gets run at controller iteration. See TestLoopExitCondition
+    :param iteration: Iteration at which the task will be executed
+    :type iteration: int
+    """
+    def __init__(self, iteration):
+        self.iteration = iteration
 
-    def should_exit_main_loop_after_first_iteration(self):
-        called = self.called
-        self.called = True
-        return called
+    def run(self):
+        pass
+
+
+class CreateProgramTask(IterationTask):
+    """
+    Task that adds  a program to controller.
+    """
+    def __init__(self, iteration, controller, program):
+        super(CreateProgramTask, self).__init__(iteration)
+        self.__controller = controller
+        self.__program = program
+
+    def run(self):
+        self.__controller.create_program(self.__program)
+
+
+class TestLoopExitCondition:
+    """
+    Gets passed to controller's run method as a replacement of default method for checking if controller should
+    terminate. Additionally tasks can be added that will be called upon iterations simulating changes to controller
+    after it has been started
+    """
+    def __init__(self, max_iterations=1) -> None:
+        super().__init__()
+        self.__iteration = 0
+        self.__max_iterations = max_iterations
+        self.__iteration_tasks = []
+
+    def should_exit_main_loop(self):
+        """
+        Method called at each iteration checking if controller should terminate. For test purposes it also does
+        additional things like running tasks
+        :return:
+        """
+        should_exit = self.__iteration >= self.__max_iterations
+        self.__iteration += 1
+        for task in self.__iteration_tasks:
+            # check if the task is for this iteration and run it
+            if task.iteration == self.__iteration:
+                task.run()
+        return should_exit
+
+    def add_task(self, iteration_task):
+        """
+        Adds a task that's going to be executed at specified iteration
+        :param iteration_task: task to execute
+        """
+        self.__iteration_tasks.append(iteration_task)
