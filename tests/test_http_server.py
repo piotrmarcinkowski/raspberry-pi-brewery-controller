@@ -6,10 +6,12 @@ from app.controller import Controller, ProgramError
 import app.http_server as server
 from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError
 from app.program import Program
+from logger import Logger
 
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"
 URL_RESOURCE_PROGRAMS = "programs"
+URL_RESOURCE_LOGS = "logs"
 
 
 class ControllerMock(Mock):
@@ -233,3 +235,18 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response_json[1]["min_temp"], 15.1)
         self.assertEqual(response_json[1]["max_temp"], 15.8)
         self.assertEqual(response_json[1]["active"], False)
+
+    def test_should_return_logs(self):
+        Logger.info("info msg")
+        Logger.error("error msg")
+
+        response = self.app.get(URL_PATH + URL_RESOURCE_LOGS, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        response_json = json.loads(response.data.decode("utf-8"))
+
+        self.assertEqual(len(response_json), 2)
+        #self.assertEqual(response_json[0]["date"], "sensor_id1")
+        self.assertEqual(response_json[0]["level"], "info")
+        self.assertEqual(response_json[0]["msg"], "info msg")
+        self.assertEqual(response_json[1]["level"], "error")
+        self.assertEqual(response_json[1]["msg"], "error msg")

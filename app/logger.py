@@ -37,11 +37,28 @@ class Logger(object):
     def __append_log(level: str, msg: str):
         Logger.__lock.acquire()
         try:
-            entry = [datetime.now(), level, msg]
+            entry = LogEntry(datetime.now(), level, msg)
             Logger.__logs.append(entry)
-            print("{0} {1} {2}".format(entry[0], entry[1], entry[2]))
+            print(str(entry))
         finally:
             Logger.__lock.release()
+
+
+class LogEntry(object):
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+    def __init__(self, date, level, message):
+        self.date = date
+        self.level = level
+        self.message = message
+
+    def to_json_data(self):
+        return {"date": self.date.strftime(LogEntry.DATE_FORMAT),
+                "level": self.level,
+                "msg": self.message}
+
+    def __str__(self) -> str:
+        return "{0} {1} {2}".format(self.date, self.level, self.message)
 
 
 if __name__ == "__main__":

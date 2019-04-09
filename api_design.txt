@@ -4,9 +4,10 @@ GET	http://[hostname]/brewery/api/v1.0/therm_sensors/[therm_sensor_id]	Retrieve 
 POST http://[hostname]/brewery/api/v1.0/therm_sensors/[therm_sensor_id]/name	 Set therm sensor name
 GET	http://[hostname]/brewery/api/v1.0/programs 	Get existing programs
 POST	http://[hostname]/brewery/api/v1.0/programs 	Set a new program
-GET	http://[hostname]/brewery/api/v1.0/programs/[program_id] 	Get program details - eg. logs
+GET	http://[hostname]/brewery/api/v1.0/programs/[program_id] 	Get program details - eg. temperature history, relay activations
 PUT	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Update an existing program - eg. change temp
 DELETE	http://[hostname]/brewery/api/v1.0/programs/[program_id]	Delete a program
+GET http://[hostname]/brewery/api/v1.0/logs  Gets logs
 
 
 GET ../therm_sensors
@@ -34,7 +35,8 @@ GET ../therm_sensors/sensorId
 GET ../programs
 --------------------
 programs [
-    ?
+    <program>,
+    <program>
 ]
 
 POST ../programs

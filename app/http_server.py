@@ -1,6 +1,7 @@
 import json
 
 from flask import Flask, Response, request
+from logger import Logger
 import threading
 import sys
 
@@ -17,6 +18,7 @@ SERVER_PORT = 80
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"
 URL_RESOURCE_PROGRAMS = "programs"
+URL_RESOURCE_LOGS = "logs"
 
 
 @app.route(URL_PATH + URL_RESOURCE_SENSORS, methods=['GET'])
@@ -24,6 +26,7 @@ def get_therm_sensors():
     sensors = __controller.get_therm_sensors()
     response = []
     for sensor in sensors:
+        # todo: refactor to remove json assembling here
         response.append({"id": sensor.id, "name": sensor.name})
     return valid_request_response(json.dumps(response))
 
@@ -32,6 +35,7 @@ def get_therm_sensors():
 def get_therm_sensor_temperature(sensor_id):
     try:
         temperature = __controller.get_therm_sensor_temperature(sensor_id)
+        # todo: refactor to remove json assembling here
         response = {"id": sensor_id, "temperature": temperature}
         return valid_request_response(json.dumps(response))
     except NoSensorFoundError as e:
@@ -91,6 +95,13 @@ def delete_program(program_index):
         return invalid_request_response(500, content=str(e))
     except ProgramError as e:
         return invalid_request_response(403, content=str(e))
+
+
+@app.route(URL_PATH + URL_RESOURCE_LOGS, methods=['GET'])
+def get_logs():
+    logs = Logger.get_logs()
+    response = [log.to_json_data() for log in logs]
+    return valid_request_response(json.dumps(response))
 
 
 def valid_request_response(content=""):
