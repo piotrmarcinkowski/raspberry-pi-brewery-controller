@@ -1,10 +1,10 @@
 import json
 
 from flask import Flask, Response, request
-from logger import Logger
 import threading
 import sys
 
+from app.logger import Logger
 from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import NoSensorFoundError, SensorNotReadyError
 from app.program import Program
