@@ -29,8 +29,7 @@ class Controller(object):
         self.__storage = storage
         self.__lock = RLock()
 
-    @staticmethod
-    def __default_main_loop_exit_condition():
+    def __default_main_loop_exit_condition(self):
         # Never exit main loop by default, keep the program running, this is needed to alter the behavior in tests only
         return False
 
