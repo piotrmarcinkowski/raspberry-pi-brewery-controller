@@ -1,12 +1,14 @@
 import json
 import unittest
+from datetime import datetime
+from datetime import timedelta
 from unittest.mock import Mock
 
 from app.controller import Controller, ProgramError
 import app.http_server as server
 from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError
 from app.program import Program
-from logger import Logger
+from app.logger import Logger, LogEntry
 
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"
@@ -237,6 +239,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response_json[1]["active"], False)
 
     def test_should_return_logs(self):
+        now = datetime.now()
         Logger.info("info msg")
         Logger.error("error msg")
 
@@ -244,9 +247,15 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         response_json = json.loads(response.data.decode("utf-8"))
 
-        self.assertEqual(len(response_json), 2)
-        #self.assertEqual(response_json[0]["date"], "sensor_id1")
-        self.assertEqual(response_json[0]["level"], "info")
-        self.assertEqual(response_json[0]["msg"], "info msg")
-        self.assertEqual(response_json[1]["level"], "error")
-        self.assertEqual(response_json[1]["msg"], "error msg")
+        logs_count = len(response_json)
+        self.assertGreaterEqual(logs_count, 2)
+        log_entry_datetime = datetime.strptime(response_json[-2]["date"], LogEntry.DATE_FORMAT)
+        delta = log_entry_datetime - now
+        self.assertLessEqual(delta.total_seconds(), 2)
+        self.assertEqual(response_json[-2]["level"], "info")
+        self.assertEqual(response_json[-2]["msg"], "info msg")
+        log_entry_datetime = datetime.strptime(response_json[-1]["date"], LogEntry.DATE_FORMAT)
+        delta = log_entry_datetime - now
+        self.assertLessEqual(delta.total_seconds(), 2)
+        self.assertEqual(response_json[-1]["level"], "error")
+        self.assertEqual(response_json[-1]["msg"], "error msg")
