@@ -41,12 +41,12 @@ programs [
 
 POST ../programs
 --------------------
-program {
+{
     sensor_id: "sensorId",
     heating_relay_index: <integer[1..8]>,
     cooling_relay_index: <integer[1..8]>,
-    program_activation_temp: <float> ?
-    temp_min: <float> ?
-    temp_max: <float> ?
+    max_temp: <float>,
+    min_temp: <float>,
+    active: True
 }
 
