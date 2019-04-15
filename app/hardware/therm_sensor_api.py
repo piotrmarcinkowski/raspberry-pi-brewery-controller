@@ -1,8 +1,19 @@
-from w1thermsensor import W1ThermSensor
-import w1thermsensor.errors as w1errors
+import app.hardware.hw_config as hw_config
+if hw_config.RUN_ON_RASPBERRY:
+    from w1thermsensor import W1ThermSensor
+    import w1thermsensor.errors as w1errors
 
 
 class ThermSensorApi(object):
+    FAKE_SENSOR_ID = "fake_sensor"
+    FAKE_SENSOR_INIT_TEMP = 20
+    FAKE_SENSOR_MAX_TEMP = 22
+    FAKE_SENSOR_DELTA = 0.1
+
+    def __init__(self):
+        if not hw_config.RUN_ON_RASPBERRY:
+            self.__fake_sensor_temperature = ThermSensorApi.FAKE_SENSOR_INIT_TEMP
+            self.__fake_sensor_temperature_delta = ThermSensorApi.FAKE_SENSOR_DELTA
 
     def get_sensor_id_list(self) -> list:
         """
@@ -12,8 +23,11 @@ class ThermSensorApi(object):
             :rtype: list
         """
 
-        w1_therm_sensors = W1ThermSensor.get_available_sensors()
-        return tuple([x.id for x in w1_therm_sensors])
+        if hw_config.RUN_ON_RASPBERRY:
+            w1_therm_sensors = W1ThermSensor.get_available_sensors()
+            return tuple([x.id for x in w1_therm_sensors])
+        else:
+            return tuple(ThermSensorApi.FAKE_SENSOR_ID)
 
     def get_sensor_temperature(self, sensor_id):
         """
@@ -24,21 +38,33 @@ class ThermSensorApi(object):
             :raises SensorNotReadyError: if the sensor is not ready yet
         """
 
-        w1_therm_sensors = W1ThermSensor.get_available_sensors()
-        for sensor in w1_therm_sensors:
-            if sensor.id == sensor_id:
-                try:
-                    return sensor.get_temperature()
-                except w1errors.NoSensorFoundError:
-                    raise NoSensorFoundError(sensor_id)
-                except w1errors.ResetValueError:
-                    raise SensorNotReadyError(sensor_id)
-                except w1errors.SensorNotReadyError:
-                    raise SensorNotReadyError(sensor_id)
-                except w1errors.W1ThermSensorError:
-                    raise ThermSensorError()
+        if hw_config.RUN_ON_RASPBERRY:
+            w1_therm_sensors = W1ThermSensor.get_available_sensors()
+            for sensor in w1_therm_sensors:
+                if sensor.id == sensor_id:
+                    try:
+                        return sensor.get_temperature()
+                    except w1errors.NoSensorFoundError:
+                        raise NoSensorFoundError(sensor_id)
+                    except w1errors.ResetValueError:
+                        raise SensorNotReadyError(sensor_id)
+                    except w1errors.SensorNotReadyError:
+                        raise SensorNotReadyError(sensor_id)
+                    except w1errors.W1ThermSensorError:
+                        raise ThermSensorError()
 
-        raise NoSensorFoundError(sensor_id)
+            raise NoSensorFoundError(sensor_id)
+        else:
+            return self.__get_fake_sensor_temperature()
+
+    def __get_fake_sensor_temperature(self):
+        self.__fake_sensor_temperature += self.__fake_sensor_temperature_delta
+        if self.__fake_sensor_temperature >= ThermSensorApi.FAKE_SENSOR_MAX_TEMP:
+            self.__fake_sensor_temperature_delta = -self.__fake_sensor_temperature_delta
+        if self.__fake_sensor_temperature <= ThermSensorApi.FAKE_SENSOR_INIT_TEMP:
+            self.__fake_sensor_temperature_delta = -self.__fake_sensor_temperature_delta
+
+        return self.__fake_sensor_temperature
 
 
 class ThermSensorError(Exception):
