@@ -27,7 +27,7 @@ class ThermSensorApi(object):
             w1_therm_sensors = W1ThermSensor.get_available_sensors()
             return tuple([x.id for x in w1_therm_sensors])
         else:
-            return tuple(ThermSensorApi.FAKE_SENSOR_ID)
+            return [ThermSensorApi.FAKE_SENSOR_ID]
 
     def get_sensor_temperature(self, sensor_id):
         """
