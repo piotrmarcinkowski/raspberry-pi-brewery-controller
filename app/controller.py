@@ -33,7 +33,7 @@ class Controller(object):
         # Never exit main loop by default, keep the program running, this is needed to alter the behavior in tests only
         return False
 
-    def run(self, interval_secs=1.0, main_loop_exit_condition=__default_main_loop_exit_condition):
+    def run(self, interval_secs=1.0, main_loop_exit_condition=None):
         """
         Start controller. After this function is called the controller will periodically update active programs to
         maintain requested temperature by turning on/off coolers/heaters attached to relays
@@ -42,6 +42,9 @@ class Controller(object):
         atexit.register(self.__clean_up)
         Logger.info("Loading programs")
         self.__load_programs()
+
+        if main_loop_exit_condition is None:
+            main_loop_exit_condition = self.__default_main_loop_exit_condition
 
         Logger.info("Staring main loop")
         while not main_loop_exit_condition():
