@@ -58,6 +58,14 @@ pip3 install -r requirements.txt
 python3 -m app.main
 ```
 
+There is also an option to run on PC by specifying additional system variable.
+In this case all hardware components (therm sensors, relays) are simulated by mocks.
+
+```
+export RUN_ON_RASPBERRY=0
+python3 -m app.main
+```
+
 ### Used libraries ###
 * https://github.com/timofurrer/w1thermsensor
 * https://sourceforge.net/p/raspberry-gpio-python/wiki/
