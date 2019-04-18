@@ -20,6 +20,11 @@ URL_RESOURCE_SENSORS = "therm_sensors"
 URL_RESOURCE_PROGRAMS = "programs"
 URL_RESOURCE_LOGS = "logs"
 
+@app.before_request
+def log_request_info():
+    print("Request {} {}".format(request.method, request.url))
+    print("Body: {}".format(request.get_data().decode("utf-8")))
+
 
 @app.route(URL_PATH + URL_RESOURCE_SENSORS, methods=['GET'])
 def get_therm_sensors():
@@ -60,7 +65,8 @@ def get_programs():
 
 
 def create_program(req):
-    program = Program.from_json(req.json)
+    print("Json: {}".format(req.json))
+    program = Program.from_json_data(req.json)
     try:
         __controller.create_program(program)
         return valid_request_response()
@@ -77,7 +83,7 @@ def modify_program(program_index):
 
 
 def replace_program(program_index, req):
-    program = Program.from_json(req.json)
+    program = Program.from_json_data(req.json)
     try:
         __controller.modify_program(int(program_index), program)
         return valid_request_response()

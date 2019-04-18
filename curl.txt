@@ -1,0 +1,2 @@
+#Create program
+curl -d '{"sensor_id":"fake_sensor", "min_temp":20.0, "max_temp":21.0, "active":"True", "cooling_relay_index":1, "heating_relay_index":-1}' -H "Content-Type: application/json" -X POST localhost:8080/brewery/api/v1.0/programs

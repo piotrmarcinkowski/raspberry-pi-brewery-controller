@@ -53,7 +53,7 @@ class Program(object):
 
         try:
             current_temperature = self.__therm_sensor_api.get_sensor_temperature(self.__sensor_id)
-        except SensorNotReadyError as e:
+        except SensorNotReadyError:
             Logger.error("Program update skipped - sensor not ready - program: {}".format(str(self)))
             return
         except NoSensorFoundError:
@@ -64,8 +64,8 @@ class Program(object):
         cooling_active = current_temperature > self.__max_temperature
         heating_active = current_temperature < self.__min_temperature
 
-        self.__set_cooling(cooling_active)
-        self.__set_heating(heating_active)
+        self.__set_cooling(cooling_active, current_temperature)
+        self.__set_heating(heating_active, current_temperature)
 
     @property
     def active(self):
@@ -107,18 +107,20 @@ class Program(object):
     def max_temperature(self):
         return self.__max_temperature
 
-    def __set_cooling(self, cooling):
+    def __set_cooling(self, cooling, current_temperature):
         if self.__cooling_relay_index == -1:
             return
         relay_state = 1 if cooling else 0
         if self.__relay_api.get_relay_state(self.__cooling_relay_index) != relay_state:
+            Logger.info("{} relay:{} temperature:{}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature))
             self.__relay_api.set_relay_state(self.__cooling_relay_index, relay_state)
 
-    def __set_heating(self, heating):
+    def __set_heating(self, heating, current_temperature):
         if self.__heating_relay_index == -1:
             return
         relay_state = 1 if heating else 0
         if self.__relay_api.get_relay_state(self.__heating_relay_index) != relay_state:
+            Logger.info("{} relay:{} temperature:{}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature))
             self.__relay_api.set_relay_state(self.__heating_relay_index, relay_state)
 
     def to_json_data(self):
@@ -163,3 +165,6 @@ class Program(object):
         return "Program [sensor_id:{} heating_relay_index:{} cooling_relay_index:{} min_temp:{} max_temp:{} active:{}]".format(
             self.sensor_id, self.heating_relay_index, self.cooling_relay_index, self.min_temperature,
             self.max_temperature, self.active)
+
+    def __repr__(self):
+        return self.__str__()
