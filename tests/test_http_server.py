@@ -136,7 +136,7 @@ class HttpServerTestCase(unittest.TestCase):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
-                                 json=json.dumps(request_content))
+                                 json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
         created_program = self.controller_mock.programs[0]
@@ -151,14 +151,14 @@ class HttpServerTestCase(unittest.TestCase):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
-                                 json=json.dumps(request_content))
+                                 json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
 
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[1]["id"], "heating_relay_index": 3,
                            "cooling_relay_index": 4, "min_temp": 17.0, "max_temp": 19.0, "active": False}
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
-                                 json=json.dumps(request_content))
+                                 json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
 
@@ -174,7 +174,7 @@ class HttpServerTestCase(unittest.TestCase):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
-                                 json=json.dumps(request_content))
+                                 json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
 
@@ -188,7 +188,7 @@ class HttpServerTestCase(unittest.TestCase):
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         self.controller_mock.raise_error_on_program_create()
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
-                                 json=json.dumps(request_content))
+                                 json=request_content)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
 
@@ -197,7 +197,7 @@ class HttpServerTestCase(unittest.TestCase):
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         self.controller_mock.raise_error_on_program_modify()
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
-                                 json=json.dumps(request_content))
+                                 json=request_content)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
 

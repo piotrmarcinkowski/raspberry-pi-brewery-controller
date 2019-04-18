@@ -107,7 +107,7 @@ class Program(object):
     def max_temperature(self):
         return self.__max_temperature
 
-    def __set_cooling(self, cooling, current_temperature):
+    def __set_cooling(self, cooling, current_temperature=None):
         if self.__cooling_relay_index == -1:
             return
         relay_state = 1 if cooling else 0
@@ -115,7 +115,7 @@ class Program(object):
             Logger.info("{} relay:{} temperature:{}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature))
             self.__relay_api.set_relay_state(self.__cooling_relay_index, relay_state)
 
-    def __set_heating(self, heating, current_temperature):
+    def __set_heating(self, heating, current_temperature=None):
         if self.__heating_relay_index == -1:
             return
         relay_state = 1 if heating else 0
