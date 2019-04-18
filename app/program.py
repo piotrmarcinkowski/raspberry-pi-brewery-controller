@@ -43,6 +43,8 @@ class Program(object):
         self.__relay_api = relay_api
         self.__therm_sensor_api = therm_sensor_api
         self.__active = active
+        self.__heating_active = False
+        self.__cooling_active = False
 
     def update(self):
         """
@@ -61,11 +63,20 @@ class Program(object):
             self.active = False
             return
 
-        cooling_active = current_temperature > self.__max_temperature
-        heating_active = current_temperature < self.__min_temperature
+        if not self.__cooling_active:
+            self.__cooling_active = current_temperature > self.__max_temperature
+        else:
+            middle_temp = (self.__max_temperature + self.__min_temperature) / 2
+            self.__cooling_active = current_temperature > middle_temp
 
-        self.__set_cooling(cooling_active, current_temperature)
-        self.__set_heating(heating_active, current_temperature)
+        if not self.__heating_active:
+            self.__heating_active = current_temperature < self.__min_temperature
+        else:
+            middle_temp = (self.__max_temperature + self.__min_temperature) / 2
+            self.__heating_active = current_temperature < middle_temp
+
+        self.__set_cooling(self.__cooling_active, current_temperature)
+        self.__set_heating(self.__heating_active, current_temperature)
 
     @property
     def active(self):
