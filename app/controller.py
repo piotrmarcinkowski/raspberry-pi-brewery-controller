@@ -40,7 +40,6 @@ class Controller(object):
         """
         Logger.info("Starting controller")
         atexit.register(self.__clean_up)
-        Logger.info("Loading programs")
         self.__load_programs()
 
         if main_loop_exit_condition is None:
@@ -51,7 +50,12 @@ class Controller(object):
             programs = self.get_programs()
             for program in programs:
                 program.update()
-            time.sleep(interval_secs)
+            try:
+                time.sleep(interval_secs)
+            except KeyboardInterrupt:
+                Logger.info("Keyboard interrupt")
+                break
+
         Logger.info("Controller stopped")
 
     def __clean_up(self):

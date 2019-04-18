@@ -118,20 +118,20 @@ class Program(object):
     def max_temperature(self):
         return self.__max_temperature
 
-    def __set_cooling(self, cooling, current_temperature=None):
+    def __set_cooling(self, cooling, current_temperature=0.0):
         if self.__cooling_relay_index == -1:
             return
         relay_state = 1 if cooling else 0
         if self.__relay_api.get_relay_state(self.__cooling_relay_index) != relay_state:
-            Logger.info("{} relay:{} temperature:{}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature))
+            Logger.info("{} relay:{} temperature:{:.2f} {}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature, self))
             self.__relay_api.set_relay_state(self.__cooling_relay_index, relay_state)
 
-    def __set_heating(self, heating, current_temperature=None):
+    def __set_heating(self, heating, current_temperature=0.0):
         if self.__heating_relay_index == -1:
             return
         relay_state = 1 if heating else 0
         if self.__relay_api.get_relay_state(self.__heating_relay_index) != relay_state:
-            Logger.info("{} relay:{} temperature:{}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature))
+            Logger.info("{} relay:{} temperature:{:.2f} {}".format("Activating" if relay_state == 1 else "Deactivating", self.__cooling_relay_index, current_temperature, self))
             self.__relay_api.set_relay_state(self.__heating_relay_index, relay_state)
 
     def to_json_data(self):
