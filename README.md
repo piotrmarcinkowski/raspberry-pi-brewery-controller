@@ -66,6 +66,19 @@ export RUN_ON_RASPBERRY=0
 python3 -m app.main
 ```
 
+Enable autostart on RPi boot
+
+```
+#on Raspberry
+cp brewery.service /lib/systemd/system
+sudo chmod 644 /lib/systemd/system/brewery.service
+sudo systemctl daemon-reload
+sudo systemctl enable brewery.service
+sudo reboot
+#check status
+sudo systemctl status brewery.service
+```
+
 ### Used libraries ###
 * https://github.com/timofurrer/w1thermsensor
 * https://sourceforge.net/p/raspberry-gpio-python/wiki/

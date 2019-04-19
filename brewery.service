@@ -1,0 +1,16 @@
+[Unit]
+Description=Brewery Controller
+After=multi-user.target
+
+[Service]
+Type=idle
+WorkingDirectory=/home/pi/raspberry-pi-brewery-controller
+ExecStart=/usr/bin/python3 -m app.main
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=BREWERY
+User=pi
+
+[Install]
+WantedBy=multi-user.target
