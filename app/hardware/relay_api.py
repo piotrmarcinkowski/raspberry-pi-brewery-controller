@@ -1,4 +1,5 @@
 import app.hardware.hw_config as hw_config
+from app.logger import Logger
 
 if hw_config.RUN_ON_RASPBERRY:
     import RPi.GPIO as GPIO
@@ -53,8 +54,10 @@ class RelayApi(object):
             raise ValueError("Invalid state value: {}".format(state))
         if hw_config.RUN_ON_RASPBERRY:
             gpio = self.RELAY_GPIO_CHANNELS[relay_index]
-            gpio_value = GPIO.HIGH if state == 1 else GPIO.LOW
-            GPIO.output(gpio, gpio_value)
-            return GPIO.input(gpio)
+            gpio_state = GPIO.HIGH if state == 1 else GPIO.LOW
+            GPIO.output(gpio, gpio_state)
+            gpio_read_state = GPIO.input(gpio)
+            Logger.info("GPIO {} state set:{} read:{}".format(gpio, gpio_state, gpio_read_state))
+            return gpio_read_state
         else:
             self.__fake_gpio_states[relay_index] = state
