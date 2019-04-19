@@ -111,11 +111,11 @@ def get_logs():
 
 
 def valid_request_response(content=""):
-    return Response(content, content_type="text/json")
+    return Response(content, content_type="application/json")
 
 
 def invalid_request_response(status, content=""):
-    return Response(content, status=status, content_type="text/json")
+    return Response(content, status=status, content_type="application/json")
 
 
 def start_server():
