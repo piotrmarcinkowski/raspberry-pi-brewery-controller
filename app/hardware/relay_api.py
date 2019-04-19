@@ -18,7 +18,7 @@ class RelayApi(object):
     def __init_gpio(self):
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.RELAY_GPIO_CHANNELS, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.setup(self.RELAY_GPIO_CHANNELS, GPIO.OUT, initial=GPIO.HIGH)
 
     def get_relay_state(self, relay_index):
         """
@@ -33,7 +33,7 @@ class RelayApi(object):
             raise ValueError("Invalid relay index: {}".format(relay_index))
         if hw_config.RUN_ON_RASPBERRY:
             gpio = self.RELAY_GPIO_CHANNELS[relay_index]
-            return GPIO.input(gpio)
+            return GPIO.input(gpio) == GPIO.LOW
         else:
             return self.__fake_gpio_states[relay_index]
 
@@ -54,7 +54,7 @@ class RelayApi(object):
             raise ValueError("Invalid state value: {}".format(state))
         if hw_config.RUN_ON_RASPBERRY:
             gpio = self.RELAY_GPIO_CHANNELS[relay_index]
-            gpio_state = GPIO.HIGH if state == 1 else GPIO.LOW
+            gpio_state = GPIO.LOW if state == 1 else GPIO.HIGH
             GPIO.output(gpio, gpio_state)
             gpio_read_state = GPIO.input(gpio)
             Logger.info("GPIO {} state set:{} read:{}".format(gpio, gpio_state, gpio_read_state))
