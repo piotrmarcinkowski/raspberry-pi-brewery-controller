@@ -70,7 +70,7 @@ Enable autostart on RPi boot
 
 ```
 #on Raspberry
-cp brewery.service /lib/systemd/system
+sudo cp brewery.service /lib/systemd/system
 sudo chmod 644 /lib/systemd/system/brewery.service
 sudo systemctl daemon-reload
 sudo systemctl enable brewery.service
