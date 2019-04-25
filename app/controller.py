@@ -212,10 +212,10 @@ class Controller(object):
             if existing_program.sensor_id == program.sensor_id:
                 Logger.error("Program rejected - duplicate sensor_id: {}".format(str(program)))
                 raise ProgramError("Sensor {} is used in other program".format(program.sensor_id))
-            if existing_program.cooling_relay_index == program.cooling_relay_index:
+            if program.cooling_relay_index != -1 and existing_program.cooling_relay_index == program.cooling_relay_index:
                 Logger.error("Program rejected - duplicate cooling relay: {}".format(str(program)))
                 raise ProgramError("Relay {} is used in other program".format(program.cooling_relay_index))
-            if existing_program.heating_relay_index == program.heating_relay_index:
+            if program.heating_relay_index != -1 and existing_program.heating_relay_index == program.heating_relay_index:
                 Logger.error("Program rejected - duplicate heating relay: {}".format(str(program)))
                 raise ProgramError("Relay {} is used in other program".format(program.heating_relay_index))
         if program.sensor_id not in self.__therm_sensor_api.get_sensor_id_list():

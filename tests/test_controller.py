@@ -85,6 +85,28 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
 
+    def test_should_create_programs_with_given_parameters_cooling_only(self):
+        program1 = Program("1001", -1, 4, 16.5, 17.1)
+        self.controller.create_program(program1)
+        self.storage_mock.store_programs.assert_called_with([program1])
+        program2 = Program("1002", -1, 5, 16.1, 17.4)
+        self.controller.create_program(program2)
+        self.storage_mock.store_programs.assert_called_with([program1, program2])
+        programs = self.controller.get_programs()
+        self.assertEqual(programs[0], program1)
+        self.assertEqual(programs[1], program2)
+
+    def test_should_create_programs_with_given_parameters_heating_only(self):
+        program1 = Program("1001", 2, -1, 16.5, 17.1)
+        self.controller.create_program(program1)
+        self.storage_mock.store_programs.assert_called_with([program1])
+        program2 = Program("1002", 1, -1, 16.1, 17.4)
+        self.controller.create_program(program2)
+        self.storage_mock.store_programs.assert_called_with([program1, program2])
+        programs = self.controller.get_programs()
+        self.assertEqual(programs[0], program1)
+        self.assertEqual(programs[1], program2)
+
     def test_should_reject_created_program_on_error_while_storing(self):
         program1 = Program("1001", 2, 4, 16.5, 17.1)
         self.controller.create_program(program1)
