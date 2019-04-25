@@ -18,6 +18,10 @@ def gpio_input(gpio_channel):
     return gpio_states[gpio_channel]
 
 
+def reversed_state(state):
+    return abs(state - 1)
+
+
 class RelayApiTest(unittest.TestCase):
 
     def setUp(self):
@@ -26,11 +30,33 @@ class RelayApiTest(unittest.TestCase):
         pass
 
     def mock_relay_states(self):
+        RPi.GPIO.setmode = Mock()
+        RPi.GPIO.setup = Mock()
         RPi.GPIO.input = Mock(side_effect=gpio_input)
         RPi.GPIO.output = Mock()
 
-    def test_should_return_proper_relay_state(self):
-        api = RelayApi()
+    def test_should_initialize_with_high_state_for_low_voltage_control_relay(self):
+        api = RelayApi(low_voltage_control=True)
+
+        RPi.GPIO.setmode.assert_called_with(RPi.GPIO.BCM)
+        RPi.GPIO.setup.assert_called_with(RELAY_GPIO_CHANNELS, RPi.GPIO.OUT, initial=RPi.GPIO.HIGH)
+
+    def test_should_initialize_with_high_state_for_high_voltage_control_relay(self):
+        api = RelayApi(low_voltage_control=False)
+
+        RPi.GPIO.setmode.assert_called_with(RPi.GPIO.BCM)
+        RPi.GPIO.setup.assert_called_with(RELAY_GPIO_CHANNELS, RPi.GPIO.OUT, initial=RPi.GPIO.LOW)
+
+    def test_should_return_proper_relay_state_for_low_voltage_control_relay(self):
+        api = RelayApi(low_voltage_control=True)
+
+        relays_count = len(RELAY_GPIO_CHANNELS)
+        for relay_index in range(relays_count):
+            relay_state = api.get_relay_state(relay_index)
+            self.assertEqual(relay_state, reversed_state(gpio_states[RELAY_GPIO_CHANNELS[relay_index]]))
+
+    def test_should_return_proper_relay_state_for_high_voltage_control_relay(self):
+        api = RelayApi(low_voltage_control=False)
 
         relays_count = len(RELAY_GPIO_CHANNELS)
         for relay_index in range(relays_count):
@@ -46,8 +72,18 @@ class RelayApiTest(unittest.TestCase):
         with (self.assertRaises(ValueError)):
             api.get_relay_state(100)
 
-    def test_should_set_proper_relay_state(self):
-        api = RelayApi()
+    def test_should_set_proper_relay_state_for_low_voltage_control_relay(self):
+        api = RelayApi(low_voltage_control=True)
+
+        relays_count = len(RELAY_GPIO_CHANNELS)
+        # generate random states to set
+        relay_states = [random.randint(0, 1) for _ in range(len(RELAY_GPIO_CHANNELS))]
+        for relay_index in range(relays_count):
+            api.set_relay_state(relay_index, relay_states[relay_index])
+            RPi.GPIO.output.assert_called_with(RELAY_GPIO_CHANNELS[relay_index], reversed_state(relay_states[relay_index]))
+
+    def test_should_set_proper_relay_state_for_high_voltage_control_relay(self):
+        api = RelayApi(low_voltage_control=False)
 
         relays_count = len(RELAY_GPIO_CHANNELS)
         # generate random states to set
