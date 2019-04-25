@@ -1,12 +1,10 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
-
 ### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+This project implements temperature controller and can be run on Raspberry Pi. 
+It was created for a home brewery owned by my father. 
+It supports multiple thermal sensors using 1-wire interface and is able to control attached relays activating heating or cooling to maintain desired temperature. 
 
 ### How do I get set up? ###
 
@@ -26,6 +24,8 @@ do the following on Raspberry-Pi device:
 - After boot type lsmod and verify whether w1_gpio module is correctly loaded  
 
 ### Configuration ####
+
+Depending on used relay type it is possible to control them with low or high voltage. See RelayApi class. 
 
 #### Dependencies ####
 
@@ -84,13 +84,9 @@ sudo systemctl status brewery.service
 * https://sourceforge.net/p/raspberry-gpio-python/wiki/
 * https://github.com/willbuckner/rpi-gpio-development-mock
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
 
 ### Who do I talk to? ###
 
-* Repo owner or admin
-* Other community or team contact
+* Piotr Marcinkowski - piotrmarc@gmail.com (developer)
+* Stanisław Marcinkowski - stanislawm@o2.pl (master brewer)
+
