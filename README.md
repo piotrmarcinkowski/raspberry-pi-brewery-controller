@@ -6,6 +6,15 @@ This project implements temperature controller and can be run on Raspberry Pi.
 It was created for a home brewery owned by my father. 
 It supports multiple thermal sensors using 1-wire interface and is able to control attached relays activating heating or cooling to maintain desired temperature. 
 
+All the documentation can be found in the [docs](docs) folder. The following picture shows the controller assembly scheme.
+
+![Assembly scheme](docs/design/all_components_assemble_scheme_bb.png)
+
+The final controller was built using commonly available electronic parts. Refer to this pic to see consecutive development stages up until deployment in the real brewery.
+
+![Assembly scheme](docs/other/hardware.jpg)
+
+
 ### How do I get set up? ###
 
 The app communicates with therm sensors via 1-wire interface. 
