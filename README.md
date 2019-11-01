@@ -86,6 +86,21 @@ sudo reboot
 sudo systemctl status brewery.service
 ```
 
+The server can be run in Docker container in mock mode (RUN_ON_RASPBERRY=0).
+This is the easiest option of deployment as it doesn't require any manual
+dependencies installation. Use attached Dockerfile to create a Docker image 
+by executing the following command.
+
+```
+docker build -t raspberry-pi-brewery-controller .
+```
+
+After image is assembled you can run the server 
+
+```
+docker container run --detach --publish=8080:8080 raspberry-pi-brewery-controller
+```
+
 ### Used libraries ###
 * https://github.com/timofurrer/w1thermsensor
 * https://sourceforge.net/p/raspberry-gpio-python/wiki/
