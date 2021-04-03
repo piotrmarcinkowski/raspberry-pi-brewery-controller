@@ -1,5 +1,7 @@
 import time
 import atexit
+import uuid
+from app.program import Program
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, ThermSensorError
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
@@ -160,14 +162,20 @@ class Controller(object):
         Creates a new program that will monitor temperature at specified therm sensor and control it by activating
         cooling/heating
         :param program: Program to create
+        :return program: Program that is a copy of the program given as parameter with unique generated ID.
         :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
         """
         Logger.info("Create program:{}".format(str(program)))
         self.__lock.acquire()
         try:
+            program_generated_id = str(uuid.uuid4())
+            created_program = Program(program_generated_id, program.program_name,
+                                      program.sensor_id, program.heating_relay_index, program.cooling_relay_index,
+                                      program.min_temperature, program.max_temperature, program.active,
+                                      self.__therm_sensor_api, self.__relay_api)
             programs = self.__programs.copy()
-            self.__validate_program(program, programs)
-            programs.append(program)
+            self.__validate_program(created_program, programs)
+            programs.append(created_program)
             try:
                 self.__storage.store_programs(programs)
                 Logger.info("Program created {}".format(str(program)))
@@ -175,22 +183,31 @@ class Controller(object):
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))
+            return created_program
         finally:
             self.__lock.release()
 
-    def modify_program(self, program_index, program):
+    @staticmethod
+    def find_program_index(program, programs):
+        for index in range(len(programs)):
+            if program.program_id == programs[index].program_id:
+                return index
+        return -1
+
+    def modify_program(self, program):
         """
         Modifies existing program
-        :param program_index: Program index to replace
-        :param program: Modified program
+        :param program: Modified program. The existing program with the same ID will be replaced by this one.
         :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
-                """
-        Logger.info("Modify program at index:{} with {}".format(program_index, str(program)))
+            or the program was not found and has to be created first
+        """
+        Logger.info("Modify program {}".format(str(program)))
         self.__lock.acquire()
         try:
-            if program_index < 0 or program_index >= len(self.__programs):
-                raise ProgramError("Program with index:{} does not exist".format(program_index))
             programs = self.__programs.copy()
+            program_index = self.find_program_index(program, programs)
+            if program_index < 0:
+                raise ProgramError("Program with the given ID not found".format(program.program_id))
             replaced_program = programs[program_index]
             programs[program_index] = program
             self.__validate_program(program, programs, skip_index=program_index)
@@ -242,16 +259,17 @@ class Controller(object):
         finally:
             self.__lock.release()
 
-    def delete_program(self, program_index):
+    def delete_program(self, program):
         """
         Deletes specified program, deactivating it first
         """
-        Logger.info("Delete program at index:{}".format(program_index))
+        Logger.info("Delete program:{}".format(program))
         self.__lock.acquire()
         try:
-            if program_index < 0 or program_index >= len(self.__programs):
-                raise ProgramError("Invalid program index: {}".format(program_index))
             programs = self.__programs.copy()
+            program_index = self.find_program_index(program, programs)
+            if program_index < 0:
+                raise ProgramError("Program with the given ID not found".format(program.program_id))
             program = programs.pop(program_index)
             try:
                 self.__storage.store_programs(programs)
@@ -270,6 +288,3 @@ class ProgramError(Exception):
 
     def __init__(self, message=""):
         super().__init__(message)
-
-
-

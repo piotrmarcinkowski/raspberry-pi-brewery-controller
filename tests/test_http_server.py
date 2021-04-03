@@ -9,6 +9,7 @@ import app.http_server as server
 from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError
 from app.program import Program
 from app.logger import Logger, LogEntry
+import uuid
 
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"
@@ -42,7 +43,13 @@ class ControllerMock(Mock):
         self.delete_program = Mock(side_effect=self.__mocked_delete_program)
         self.get_programs = Mock(side_effect=self.__mocked_get_programs)
         self.programs = []
+        self.__next_program_id = None
         self.__temperatures = {}
+
+    def get_next_program_id(self):
+        if self.__next_program_id is None:
+            self.__generate_next_program_id()
+        return self.__next_program_id
 
     def raise_error_on_program_create(self):
         self.create_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
@@ -70,7 +77,17 @@ class ControllerMock(Mock):
             raise NoSensorFoundError(sensor_id)
 
     def __mocked_create_program(self, program):
-        self.programs.append(program)
+        new_program = Program(
+                 program_id=self.get_next_program_id(),
+                 program_name=program.program_name,
+                 sensor_id=program.sensor_id,
+                 heating_relay_index=program.heating_relay_index,
+                 cooling_relay_index=program.cooling_relay_index,
+                 min_temperature=program.min_temperature,
+                 max_temperature=program.max_temperature,
+                 active=program.active)
+        self.programs.append(new_program)
+        self.__generate_next_program_id()
 
     def __mocked_modify_program(self, program_index, program):
         self.programs[program_index] = program
@@ -80,6 +97,11 @@ class ControllerMock(Mock):
 
     def __mocked_get_programs(self):
         return self.programs
+
+    def __generate_next_program_id(self):
+        self.__next_program_id = str(uuid.uuid4())
+        self.next_program_id = self.__next_program_id
+        return self.__next_program_id
 
 
 class HttpServerTestCase(unittest.TestCase):
@@ -133,19 +155,24 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertNotEqual(response.data, b"")
 
     def test_should_create_program(self):
-        request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
-                           "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
+        request_content = {"name": "test_program_name", "sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"],
+                           "heating_relay_index": 1, "cooling_relay_index": 2,
+                           "min_temp": 16.0, "max_temp": 18.0, "active": True}
+        expected_generated_id = self.controller_mock.get_next_program_id()
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
         created_program = self.controller_mock.programs[0]
-        self.assertEqual(created_program.sensor_id, request_content["sensor_id"])
-        self.assertEqual(created_program.cooling_relay_index, request_content["cooling_relay_index"])
-        self.assertEqual(created_program.heating_relay_index, request_content["heating_relay_index"])
-        self.assertEqual(created_program.min_temperature, request_content["min_temp"])
-        self.assertEqual(created_program.max_temperature, request_content["max_temp"])
-        self.assertEqual(created_program.active, request_content["active"])
+        self.assertEqual(expected_generated_id, created_program.program_id)
+        self.assertEqual(request_content["name"], created_program.program_name)
+        self.assertTrue(len(created_program.program_crc) > 0, "Crc should not be empty")
+        self.assertEqual(request_content["sensor_id"], created_program.sensor_id)
+        self.assertEqual(request_content["cooling_relay_index"], created_program.cooling_relay_index)
+        self.assertEqual(request_content["heating_relay_index"], created_program.heating_relay_index)
+        self.assertEqual(request_content["min_temp"], created_program.min_temperature)
+        self.assertEqual(request_content["max_temp"], created_program.max_temperature)
+        self.assertEqual(request_content["active"], created_program.active)
 
     def test_should_modify_program(self):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
@@ -154,6 +181,7 @@ class HttpServerTestCase(unittest.TestCase):
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
+        created_program = self.controller_mock.programs[0]
 
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[1]["id"], "heating_relay_index": 3,
                            "cooling_relay_index": 4, "min_temp": 17.0, "max_temp": 19.0, "active": False}
@@ -163,6 +191,8 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.data, b"")
 
         modified_program = self.controller_mock.programs[0]
+        self.assertTrue(len(modified_program.program_crc) > 0, "Crc should not be empty")
+        self.assertNotEqual(created_program.program_crc, modified_program.program_crc)
         self.assertEqual(modified_program.sensor_id, request_content["sensor_id"])
         self.assertEqual(modified_program.cooling_relay_index, request_content["cooling_relay_index"])
         self.assertEqual(modified_program.heating_relay_index, request_content["heating_relay_index"])
@@ -219,18 +249,22 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
 
     def test_should_return_existing_programs(self):
-        self.controller_mock.programs.append(Program("sensor_id1", 2, 4, 15.0, 15.5, active=True))
-        self.controller_mock.programs.append(Program("sensor_id2", 1, 5, 15.1, 15.8, active=False))
+        self.controller_mock.programs.append(Program("program_id1", "program_name1", "sensor_id1", 2, 4, 15.0, 15.5, active=True))
+        self.controller_mock.programs.append(Program("program_id2", "program_name2", "sensor_id2", 1, 5, 15.1, 15.8, active=False))
 
         response = self.app.get(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         response_json = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(response_json[0]["id"], "program_id1")
+        self.assertEqual(response_json[0]["name"], "program_name1")
         self.assertEqual(response_json[0]["sensor_id"], "sensor_id1")
         self.assertEqual(response_json[0]["heating_relay_index"], 2)
         self.assertEqual(response_json[0]["cooling_relay_index"], 4)
         self.assertEqual(response_json[0]["min_temp"], 15.0)
         self.assertEqual(response_json[0]["max_temp"], 15.5)
         self.assertEqual(response_json[0]["active"], True)
+        self.assertEqual(response_json[1]["id"], "program_id2")
+        self.assertEqual(response_json[1]["name"], "program_name2")
         self.assertEqual(response_json[1]["sensor_id"], "sensor_id2")
         self.assertEqual(response_json[1]["heating_relay_index"], 1)
         self.assertEqual(response_json[1]["cooling_relay_index"], 5)

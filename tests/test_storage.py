@@ -28,8 +28,8 @@ class StorageTestCase(unittest.TestCase):
 
     def test_should_store_programs_to_file_and_be_able_to_load_it_back(self):
         programs = [
-            Program("id1", 1, 2, 16.7, 18.9),
-            Program("id2", 4, -1, 14.0, 15.0, active=False)
+            Program("id1", "program1", "sensor1", 1, 2, 16.7, 18.9),
+            Program("id2", "program2", "sensor2", 4, -1, 14.0, 15.0, active=False)
         ]
         storage = self.__create_storage()
         storage.store_programs(programs)

@@ -7,6 +7,15 @@ from app.program import Program
 from app.hardware.relay_api import RelayApi
 from app.storage import Storage
 
+PROGRAM_NAME = "ProgramName"
+PROGRAM_CRC = "CRC"
+
+
+def create_test_program(sensor_id, heating_relay_index, cooling_relay_index,
+                        min_temperature, max_temperature, active=True, program_id=Program.UNDEFINED_ID):
+    return Program(program_id, PROGRAM_NAME,
+                   sensor_id, heating_relay_index, cooling_relay_index, min_temperature, max_temperature, active)
+
 
 class StorageMock(Mock):
     def __init__(self, programs=[], sensors=[]):
@@ -49,6 +58,12 @@ class ControllerTestCase(unittest.TestCase):
             relay_api=self.relay_api_mock,
             storage=self.storage_mock)
 
+    def add_test_program(self, sensor_id, heating_relay_index, cooling_relay_index,
+                         min_temperature, max_temperature, active=True):
+        return self.controller.create_program(
+            create_test_program(sensor_id, heating_relay_index, cooling_relay_index,
+                                min_temperature, max_temperature, active))
+
     def test_should_return_therm_sensor_list(self):
         sensors = self.controller.get_therm_sensors()
         self.assertEqual(len(sensors), len(self.MOCKED_SENSOR_IDS))
@@ -75,89 +90,79 @@ class ControllerTestCase(unittest.TestCase):
             self.controller.get_therm_sensor_temperature(self.MOCKED_SENSOR_IDS[0])
 
     def test_should_create_programs_with_given_parameters(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
         self.storage_mock.store_programs.assert_called_with([program1])
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
         self.storage_mock.store_programs.assert_called_with([program1, program2])
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
 
     def test_should_create_programs_with_given_parameters_cooling_only(self):
-        program1 = Program("1001", -1, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
+        program1 = self.add_test_program("1001", -1, 4, 16.5, 17.1)
         self.storage_mock.store_programs.assert_called_with([program1])
-        program2 = Program("1002", -1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
+        program2 = self.add_test_program("1002", -1, 5, 16.1, 17.4)
         self.storage_mock.store_programs.assert_called_with([program1, program2])
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
 
     def test_should_create_programs_with_given_parameters_heating_only(self):
-        program1 = Program("1001", 2, -1, 16.5, 17.1)
-        self.controller.create_program(program1)
+        program1 = self.add_test_program("1001", 2, -1, 16.5, 17.1)
         self.storage_mock.store_programs.assert_called_with([program1])
-        program2 = Program("1002", 1, -1, 16.1, 17.4)
-        self.controller.create_program(program2)
+        program2 = self.add_test_program("1002", 1, -1, 16.1, 17.4)
         self.storage_mock.store_programs.assert_called_with([program1, program2])
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
 
     def test_should_reject_created_program_on_error_while_storing(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = create_test_program("1002", 1, 5, 16.1, 17.4)
         self.storage_mock.store_programs = Mock(side_effect=IOError())
         with self.assertRaises(ProgramError):
             self.controller.create_program(program2)
         programs = self.controller.get_programs()
+        self.assertEqual(1, len(programs))
         self.assertEqual(programs[0], program1)
 
     def test_should_reject_program_that_has_common_part_with_already_created_one(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1001", 1, 5, 16.1, 17.4)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = create_test_program("1001", 1, 5, 16.1, 17.4)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program2)
-        program2 = Program("1002", 2, 5, 16.1, 17.4)
+        program2 = create_test_program("1002", 2, 5, 16.1, 17.4)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program2)
-        program2 = Program("1002", 1, 4, 16.1, 17.4)
+        program2 = create_test_program("1002", 1, 4, 16.1, 17.4)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program2)
 
     def test_should_reject_program_that_has_invalid_therm_sensor_id(self):
         invalid_sensor_id = "invalid_sensor_id"
-        program = Program(invalid_sensor_id, 2, 4, 16.5, 17.1)
+        program = create_test_program(invalid_sensor_id, 2, 4, 16.5, 17.1)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program)
 
     def test_should_reject_program_that_has_invalid_relay_index(self):
-        program1 = Program("1001", -2, 4, 16.5, 17.1)
+        program1 = create_test_program("1001", -2, 4, 16.5, 17.1)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program1)
-        program2 = Program("1001", 3, -2, 16.5, 17.1)
+        program2 = create_test_program("1001", 3, -2, 16.5, 17.1)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program2)
-        program3 = Program("1001", Controller.RELAYS_COUNT, 0, 16.5, 17.1)
+        program3 = create_test_program("1001", Controller.RELAYS_COUNT, 0, 16.5, 17.1)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program3)
-        program4 = Program("1001", 0, Controller.RELAYS_COUNT, 16.5, 17.1)
+        program4 = create_test_program("1001", 0, Controller.RELAYS_COUNT, 16.5, 17.1)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program4)
 
     def test_should_delete_existing_program_0(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        self.controller.delete_program(0)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        self.controller.delete_program(program1)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program2)
         self.assertEqual(programs[1], program3)
@@ -165,13 +170,10 @@ class ControllerTestCase(unittest.TestCase):
         self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_delete_existing_program_1(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        self.controller.delete_program(1)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        self.controller.delete_program(program2)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program3)
@@ -179,13 +181,10 @@ class ControllerTestCase(unittest.TestCase):
         self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_delete_existing_program_2(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        self.controller.delete_program(2)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        self.controller.delete_program(program3)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
@@ -193,47 +192,34 @@ class ControllerTestCase(unittest.TestCase):
         self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_raise_when_deleting_program_with_invalid_index(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        self.controller.delete_program(program1)
         with self.assertRaises(ProgramError):
-            self.controller.delete_program(-1)
-        with self.assertRaises(ProgramError):
-            self.controller.delete_program(3)
-        with self.assertRaises(ProgramError):
-            self.controller.delete_program(99)
+            self.controller.delete_program(program1)
         programs = self.controller.get_programs()
-        self.assertEqual(programs[0], program1)
-        self.assertEqual(programs[1], program2)
-        self.assertEqual(programs[2], program3)
+        self.assertEqual(programs[0], program2)
+        self.assertEqual(programs[1], program3)
 
     def test_should_leave_programs_intact_on_error_while_saving_after_delete(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
         self.storage_mock.store_programs = Mock(side_effect=IOError())
         with self.assertRaises(ProgramError):
-            self.controller.delete_program(0)
+            self.controller.delete_program(program1)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
 
-    def test_should_modify_program_with_given_index(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        modified_program2 = Program("1004", 0, 7, 15.8, 15.9, False)
-        self.controller.modify_program(1, modified_program2)
+    def test_should_modify_program_with_given_id(self):
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        modified_program2 = create_test_program("1004", 0, 7, 15.8, 15.9, False, program2.program_id)
+        self.controller.modify_program(modified_program2)
         programs = self.controller.get_programs()
         self.storage_mock.store_programs.assert_called_with(programs)
         self.assertEqual(programs[0], program1)
@@ -241,56 +227,48 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[2], program3)
 
     def test_should_reject_modified_program_on_error_while_storing(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        modified_program2 = Program("1004", 0, 7, 15.8, 15.9, False)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        modified_program2 = create_test_program("1004", 0, 7, 15.8, 15.9, False, program2.program_id)
         self.storage_mock.store_programs = Mock(side_effect=IOError())
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(1, modified_program2)
+            self.controller.modify_program(modified_program2)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
 
-    def test_should_raise_if_modifying_program_with_invalid_index(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
+    def test_should_raise_if_modifying_program_with_invalid_id(self):
+        program1 = create_test_program("1001", 2, 4, 16.5, 17.1)
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(0, program1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        modified_program2 = Program("1004", 0, 7, 15.8, 15.9, False)
+            self.controller.modify_program(program1)
+        program1 = self.controller.create_program(program1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        self.controller.delete_program(program2)
+        modified_program2 = create_test_program("1004", 0, 7, 15.8, 15.9, False, program2.program_id)
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(-1, modified_program2)
+            self.controller.modify_program(modified_program2)
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(3, modified_program2)
+            self.controller.modify_program(modified_program2)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
-        self.assertEqual(programs[1], program2)
-        self.assertEqual(programs[2], program3)
+        self.assertEqual(programs[1], program3)
 
     def test_should_raise_if_program_modification_collides_with_other_program(self):
-        program1 = Program("1001", 2, 4, 16.5, 17.1)
-        self.controller.create_program(program1)
-        program2 = Program("1002", 1, 5, 16.1, 17.4)
-        self.controller.create_program(program2)
-        program3 = Program("1003", 3, 6, 16.0, 17.2)
-        self.controller.create_program(program3)
-        modified_program2 = Program("1003", 0, 7, 15.8, 15.9, False)
+        program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)
+        program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
+        program3 = self.add_test_program("1003", 3, 6, 16.0, 17.2)
+        modified_program2 = create_test_program("1003", 0, 7, 15.8, 15.9, False, program2.program_id)
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(1, modified_program2)
-        modified_program2 = Program("1002", 2, 7, 15.2, 15.3, False)
+            self.controller.modify_program(modified_program2)
+        modified_program2 = create_test_program("1002", 2, 7, 15.2, 15.3, False, program2.program_id)
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(1, modified_program2)
-        modified_program2 = Program("1002", 1, 6, 15.4, 15.5, False)
+            self.controller.modify_program(modified_program2)
+        modified_program2 = create_test_program("1002", 1, 6, 15.4, 15.5, False, program2.program_id)
         with self.assertRaises(ProgramError):
-            self.controller.modify_program(1, modified_program2)
+            self.controller.modify_program(modified_program2)
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
@@ -366,7 +344,7 @@ class IterationTask:
 
 class CreateProgramTask(IterationTask):
     """
-    Task that adds  a program to controller.
+    Task that adds a program to controller.
     """
     def __init__(self, iteration, controller, program):
         super(CreateProgramTask, self).__init__(iteration)
@@ -374,7 +352,10 @@ class CreateProgramTask(IterationTask):
         self.__program = program
 
     def run(self):
-        self.__controller.create_program(self.__program)
+        created_program = self.__controller.create_program(self.__program)
+        # controller creates a copy of given program to generate unique id for it.
+        # copy here all necessary properties, eg. mocked methods that will be asserted
+        created_program.update = self.__program.update
 
 
 class TestLoopExitCondition:
