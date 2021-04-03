@@ -74,32 +74,36 @@ def create_program(req):
         return invalid_request_response(403, content=str(e))
 
 
-@app.route(URL_PATH + URL_RESOURCE_PROGRAMS + "/<program_index>", methods=['PUT', 'DELETE'])
-def modify_program(program_index):
+@app.route(URL_PATH + URL_RESOURCE_PROGRAMS + "/<program_id>", methods=['PUT', 'DELETE'])
+def modify_program(program_id):
     if request.method == 'PUT':
-        return replace_program(program_index, request)
+        return replace_program(program_id, request)
     if request.method == 'DELETE':
-        return delete_program(program_index)
+        return delete_program(program_id)
 
 
-def replace_program(program_index, req):
+def replace_program(program_id, req):
     program = Program.from_json_data(req.json)
     try:
-        __controller.modify_program(int(program_index), program)
+        __controller.modify_program(program_id, program)
         return valid_request_response()
     except ValueError as e:
         return invalid_request_response(500, content=str(e))
     except ProgramError as e:
+        if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
+            return invalid_request_response(404, content=str(e))
         return invalid_request_response(403, content=str(e))
 
 
-def delete_program(program_index):
+def delete_program(program_id):
     try:
-        __controller.delete_program(int(program_index))
+        __controller.delete_program(program_id)
         return valid_request_response()
     except ValueError as e:
         return invalid_request_response(500, content=str(e))
     except ProgramError as e:
+        if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
+            return invalid_request_response(404, content=str(e))
         return invalid_request_response(403, content=str(e))
 
 

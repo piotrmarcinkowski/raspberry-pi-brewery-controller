@@ -89,10 +89,26 @@ class ControllerMock(Mock):
         self.programs.append(new_program)
         self.__generate_next_program_id()
 
-    def __mocked_modify_program(self, program_index, program):
+    def __mocked_modify_program(self, program_id, program):
+        program_index = -1
+        for index in range(len(self.programs)):
+            if program_id == self.programs[index].program_id:
+                program_index = index
+                break
+        if program_index < 0:
+            raise ProgramError("Program with the given ID not found:{}".format(program.program_id),
+                               ProgramError.ERROR_CODE_INVALID_ID)
         self.programs[program_index] = program
 
-    def __mocked_delete_program(self, program_index):
+    def __mocked_delete_program(self, program_id):
+        program_index = -1
+        for index in range(len(self.programs)):
+            if program_id == self.programs[index].program_id:
+                program_index = index
+                break
+        if program_index < 0:
+            raise ProgramError("Program with the given ID not found:{}".format(program_id),
+                               ProgramError.ERROR_CODE_INVALID_ID)
         del self.programs[program_index]
 
     def __mocked_get_programs(self):
@@ -185,7 +201,7 @@ class HttpServerTestCase(unittest.TestCase):
 
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[1]["id"], "heating_relay_index": 3,
                            "cooling_relay_index": 4, "min_temp": 17.0, "max_temp": 19.0, "active": False}
-        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
+        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/" + created_program.program_id, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
@@ -207,8 +223,9 @@ class HttpServerTestCase(unittest.TestCase):
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
+        created_program = self.controller_mock.programs[0]
 
-        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True)
+        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/" + created_program.program_id, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b"")
         self.assertEqual(len(self.controller_mock.programs), 0)
@@ -231,12 +248,12 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
 
-    def test_should_return_status_500_on_modify_when_error_parsing_program_index(self):
+    def test_should_return_status_404_on_modify_when_invalid_program_id(self):
         request_content = {"sensor_id": ControllerMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
-        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/not_int", follow_redirects=True,
-                                 json=json.dumps(request_content))
-        self.assertEqual(response.status_code, 500)
+        response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/invalid_program_id", follow_redirects=True,
+                                 json=request_content)
+        self.assertEqual(response.status_code, 404)
 
     def test_should_return_status_403_when_program_deletion_was_rejected(self):
         self.controller_mock.raise_error_on_program_delete()
@@ -244,9 +261,9 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
 
-    def test_should_return_status_500_on_delete_when_error_parsing_program_index(self):
-        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/not_int", follow_redirects=True)
-        self.assertEqual(response.status_code, 500)
+    def test_should_return_status_404_on_delete_when_invalid_program_id(self):
+        response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/invalid_program_id", follow_redirects=True)
+        self.assertEqual(response.status_code, 404)
 
     def test_should_return_existing_programs(self):
         self.controller_mock.programs.append(Program("program_id1", "program_name1", "sensor_id1", 2, 4, 15.0, 15.5, active=True))

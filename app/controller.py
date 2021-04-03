@@ -188,16 +188,18 @@ class Controller(object):
             self.__lock.release()
 
     @staticmethod
-    def find_program_index(program, programs):
+    def find_program_index(program_id, programs):
         for index in range(len(programs)):
-            if program.program_id == programs[index].program_id:
+            if program_id == programs[index].program_id:
                 return index
         return -1
 
-    def modify_program(self, program):
+    def modify_program(self, program_id, program):
         """
         Modifies existing program
-        :param program: Modified program. The existing program with the same ID will be replaced by this one.
+        :param program_id: Id of the program to modify
+        :param program: Modified program. The existing program will be replaced by this one. Note that the program
+        Id is provided separately, it's not being being taken from the program itself, it can be empty there in fact
         :raises ProgramError: if there is already a program that uses the same thermal sensor or heating/cooling relay
             or the program was not found and has to be created first
         """
@@ -205,11 +207,15 @@ class Controller(object):
         self.__lock.acquire()
         try:
             programs = self.__programs.copy()
-            program_index = self.find_program_index(program, programs)
+            program_index = self.find_program_index(program_id, programs)
             if program_index < 0:
-                raise ProgramError("Program with the given ID not found".format(program.program_id))
+                raise ProgramError("Program with the given ID not found:{}".format(program.program_id),
+                                   ProgramError.ERROR_CODE_INVALID_ID)
             replaced_program = programs[program_index]
-            programs[program_index] = program
+            programs[program_index] = Program(replaced_program.program_id, program.program_name,
+                                      program.sensor_id, program.heating_relay_index, program.cooling_relay_index,
+                                      program.min_temperature, program.max_temperature, program.active,
+                                      self.__therm_sensor_api, self.__relay_api)
             self.__validate_program(program, programs, skip_index=program_index)
             try:
                 self.__storage.store_programs(programs)
@@ -259,17 +265,18 @@ class Controller(object):
         finally:
             self.__lock.release()
 
-    def delete_program(self, program):
+    def delete_program(self, program_id):
         """
         Deletes specified program, deactivating it first
         """
-        Logger.info("Delete program:{}".format(program))
+        Logger.info("Delete program:{}".format(program_id))
         self.__lock.acquire()
         try:
             programs = self.__programs.copy()
-            program_index = self.find_program_index(program, programs)
+            program_index = self.find_program_index(program_id, programs)
             if program_index < 0:
-                raise ProgramError("Program with the given ID not found".format(program.program_id))
+                raise ProgramError("Program with the given ID not found:{}".format(program_id),
+                                   ProgramError.ERROR_CODE_INVALID_ID)
             program = programs.pop(program_index)
             try:
                 self.__storage.store_programs(programs)
@@ -286,5 +293,12 @@ class Controller(object):
 class ProgramError(Exception):
     """Exception class for program errors """
 
-    def __init__(self, message=""):
+    ERROR_CODE_INVALID_ID = "invalid_id"
+    ERROR_CODE_INVALID_OPERATION = "invalid_operation"
+
+    def __init__(self, message="", error_code=ERROR_CODE_INVALID_OPERATION):
         super().__init__(message)
+        self.error_code = error_code
+
+    def get_error_code(self):
+        return self.error_code
