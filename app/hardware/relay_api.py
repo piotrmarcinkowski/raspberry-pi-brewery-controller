@@ -8,6 +8,10 @@ if hw_config.RUN_ON_RASPBERRY:
 class RelayApi(object):
     RELAY_GPIO_CHANNELS = [17, 27, 22, 23, 24, 25, 16, 26]
 
+    @staticmethod
+    def instance():
+        return RelayApi()
+
     def __init__(self, low_voltage_control=True) -> None:
         super().__init__()
         self.low_voltage_control = low_voltage_control

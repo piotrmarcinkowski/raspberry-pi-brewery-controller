@@ -28,7 +28,7 @@ class Program(object):
                  min_temperature=UNDEFINED_MIN_TEMP,
                  max_temperature=UNDEFINED_MAX_TEMP,
                  active=UNDEFINED_ACTIVE,
-                 therm_sensor_api=ThermSensorApi(), relay_api=RelayApi()):
+                 therm_sensor_api=None, relay_api=None):
         """
         Creates program instance.
         :param program_id: Id of the program in UUID format
@@ -60,8 +60,8 @@ class Program(object):
         self.__cooling_relay_index = cooling_relay_index
         self.__min_temperature = min_temperature
         self.__max_temperature = max_temperature
-        self.__relay_api = relay_api
-        self.__therm_sensor_api = therm_sensor_api
+        self.__relay_api = relay_api if relay_api is not None else RelayApi.instance()
+        self.__therm_sensor_api = therm_sensor_api if therm_sensor_api is not None else ThermSensorApi.instance()
         self.__active = active
         self.__heating_active = False
         self.__cooling_active = False
@@ -173,6 +173,32 @@ class Program(object):
                 self.__cooling_relay_index, current_temperature, self))
             self.__relay_api.set_relay_state(self.__heating_relay_index, relay_state)
 
+    def create_program_state(self):
+        heating_activated = False
+        if self.heating_relay_index != Program.UNDEFINED_HEATING_RELAY_INDEX:
+            heating_activated = self.__relay_api.get_relay_state(self.heating_relay_index)
+        cooling_activated = False
+        if self.cooling_relay_index != Program.UNDEFINED_HEATING_RELAY_INDEX:
+            cooling_activated = self.__relay_api.get_relay_state(self.cooling_relay_index)
+        return ProgramState(self.program_id,
+                            self.__therm_sensor_api.get_sensor_temperature(self.sensor_id),
+                            self.program_crc,
+                            heating_activated, cooling_activated)
+
+    def modify_with(self, program):
+        return Program(
+            program_id=self.program_id,
+            program_name=program.program_name,
+            sensor_id=program.sensor_id,
+            heating_relay_index=program.heating_relay_index,
+            cooling_relay_index=program.cooling_relay_index,
+            min_temperature=program.min_temperature,
+            max_temperature=program.max_temperature,
+            active=program.active,
+            therm_sensor_api=program.__therm_sensor_api,
+            relay_api=program.__relay_api
+        )
+
     def to_json_data(self):
         return {"id": self.program_id,
                 "name": self.program_name,
@@ -221,3 +247,62 @@ class Program(object):
 
     def __repr__(self):
         return self.__str__()
+
+
+class ProgramState:
+    def __init__(self,
+                 program_id,
+                 current_temperature,
+                 program_crc,
+                 heating_activated=False,
+                 cooling_activated=False):
+        """
+        Creates program state instance.
+        :param program_id: Id of the program in UUID format that state refers to
+        :type program_id: str
+        :param current_temperature: Current temperature reported from the thermal sensor associated with the program
+        :type current_temperature: float
+        :param program_crc: Crc of the program this state refers to
+        :type program_crc: str
+        :param heating_activated: True if heating for the program is active now
+        :type heating_activated: bool
+        :param cooling_activated: True if cooling for the program is active now
+        :type cooling_activated: bool
+        """
+        super().__init__()
+        self.__program_id = program_id
+        self.__current_temperature = current_temperature
+        self.__program_crc = program_crc
+        self.__heating_activated = heating_activated
+        self.__cooling_activated = cooling_activated
+
+    @property
+    def program_id(self):
+        return self.__program_id
+
+    @property
+    def current_temperature(self):
+        return self.__current_temperature
+
+    @property
+    def program_crc(self):
+        return self.__program_crc
+
+    @property
+    def heating_activated(self):
+        return self.__heating_activated
+
+    @property
+    def cooling_activated(self):
+        return self.__cooling_activated
+
+    def to_json_data(self):
+        return {"id": self.program_id,
+                "currentTemp": self.current_temperature,
+                "crc": self.program_crc,
+                "heatingActivated": self.heating_activated,
+                "coolingActivated": self.cooling_activated}
+
+    def to_json(self):
+        data = self.to_json_data()
+        return json.dumps(data)

@@ -18,6 +18,7 @@ SERVER_PORT = 8080
 URL_PATH = "/brewery/api/v1.0/"
 URL_RESOURCE_SENSORS = "therm_sensors"
 URL_RESOURCE_PROGRAMS = "programs"
+URL_RESOURCE_STATES = "states"
 URL_RESOURCE_LOGS = "logs"
 
 @app.before_request
@@ -105,6 +106,20 @@ def delete_program(program_id):
         if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
             return invalid_request_response(404, content=str(e))
         return invalid_request_response(403, content=str(e))
+
+
+@app.route(URL_PATH + URL_RESOURCE_STATES, methods=['GET'])
+def get_program_states():
+    response = []
+    for state in __controller.get_program_states():
+        response.append(state.to_json_data())
+    return valid_request_response(json.dumps(response))
+
+
+@app.route(URL_PATH + URL_RESOURCE_STATES + "/<program_id>", methods=['GET'])
+def get_program_state(program_id):
+    state = __controller.get_program_state(program_id)
+    return valid_request_response(json.dumps(state.to_json_data()))
 
 
 @app.route(URL_PATH + URL_RESOURCE_LOGS, methods=['GET'])

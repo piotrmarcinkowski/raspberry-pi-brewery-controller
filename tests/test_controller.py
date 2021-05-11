@@ -223,7 +223,7 @@ class ControllerTestCase(unittest.TestCase):
         programs = self.controller.get_programs()
         self.storage_mock.store_programs.assert_called_with(programs)
         self.assertEqual(programs[0], program1)
-        self.assertEqual(programs[1], modified_program2)
+        self.assertEqual(modified_program2, programs[1])
         self.assertEqual(programs[2], program3)
 
     def test_should_reject_modified_program_on_error_while_storing(self):

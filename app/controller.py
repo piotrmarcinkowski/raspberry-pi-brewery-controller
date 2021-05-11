@@ -1,7 +1,7 @@
 import time
 import atexit
 import uuid
-from app.program import Program
+from app.program import Program, ProgramState
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, ThermSensorError
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
@@ -13,7 +13,7 @@ from threading import RLock
 class Controller(object):
     RELAYS_COUNT = 8
 
-    def __init__(self, therm_sensor_api=ThermSensorApi(), relay_api=RelayApi(), storage=Storage()):
+    def __init__(self, therm_sensor_api=None, relay_api=None, storage=Storage()):
         """
         Creates controller instance.
         :param therm_sensor_api: Api to obtain therm sensors and their measurements
@@ -26,8 +26,8 @@ class Controller(object):
         super().__init__()
         self.__sensors = None
         self.__programs = []
-        self.__therm_sensor_api = therm_sensor_api
-        self.__relay_api = relay_api
+        self.__therm_sensor_api = therm_sensor_api if therm_sensor_api is not None else ThermSensorApi.instance()
+        self.__relay_api = relay_api if relay_api is not None else RelayApi.instance()
         self.__storage = storage
         self.__lock = RLock()
 
@@ -206,21 +206,18 @@ class Controller(object):
         Logger.info("Modify program {}".format(str(program)))
         self.__lock.acquire()
         try:
-            programs = self.__programs.copy()
-            program_index = self.find_program_index(program_id, programs)
+            updated_programs = self.__programs.copy()
+            program_index = self.find_program_index(program_id, updated_programs)
             if program_index < 0:
                 raise ProgramError("Program with the given ID not found:{}".format(program.program_id),
                                    ProgramError.ERROR_CODE_INVALID_ID)
-            replaced_program = programs[program_index]
-            programs[program_index] = Program(replaced_program.program_id, program.program_name,
-                                      program.sensor_id, program.heating_relay_index, program.cooling_relay_index,
-                                      program.min_temperature, program.max_temperature, program.active,
-                                      self.__therm_sensor_api, self.__relay_api)
-            self.__validate_program(program, programs, skip_index=program_index)
+            existing_program = updated_programs[program_index]
+            updated_programs[program_index] = existing_program.modify_with(program)
+            self.__validate_program(program, updated_programs, skip_index=program_index)
             try:
-                self.__storage.store_programs(programs)
-                self.__programs = programs
-                Logger.info("Program modified {} -> {}".format(str(replaced_program), str(program)))
+                self.__storage.store_programs(updated_programs)
+                self.__programs = updated_programs
+                Logger.info("Program modified {} -> {}".format(str(existing_program), str(program)))
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))
@@ -289,6 +286,21 @@ class Controller(object):
         finally:
             self.__lock.release()
 
+    def get_program_state(self, program_id):
+        """
+        Returns current state of the given program
+        :return: State of the program
+        :rtype: ProgramState
+        """
+        self.__lock.acquire()
+        try:
+            program_index = self.find_program_index(program_id, self.__programs)
+            if program_index < 0:
+                raise ProgramError("Program with the given ID not found:{}".format(program_id),
+                                   ProgramError.ERROR_CODE_INVALID_ID)
+            return self.__programs[program_index].create_program_state()
+        finally:
+            self.__lock.release()
 
 class ProgramError(Exception):
     """Exception class for program errors """

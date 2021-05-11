@@ -10,6 +10,10 @@ class ThermSensorApi(object):
     FAKE_SENSOR_MAX_TEMP = 22
     FAKE_SENSOR_DELTA = 0.1
 
+    @staticmethod
+    def instance():
+        return ThermSensorApi()
+
     def __init__(self):
         if not hw_config.RUN_ON_RASPBERRY:
             self.__fake_sensor_temperature = ThermSensorApi.FAKE_SENSOR_INIT_TEMP
