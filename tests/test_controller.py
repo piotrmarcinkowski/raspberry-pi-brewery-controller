@@ -5,7 +5,7 @@ from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, SensorNotReadyError
 from app.program import Program
 from app.hardware.relay_api import RelayApi
-from app.storage import Storage
+from tests.mocks import StorageMock
 
 PROGRAM_NAME = "ProgramName"
 PROGRAM_CRC = "CRC"
@@ -15,29 +15,6 @@ def create_test_program(sensor_id, heating_relay_index, cooling_relay_index,
                         min_temperature, max_temperature, active=True, program_id=Program.UNDEFINED_ID):
     return Program(program_id, PROGRAM_NAME,
                    sensor_id, heating_relay_index, cooling_relay_index, min_temperature, max_temperature, active)
-
-
-class StorageMock(Mock):
-    def __init__(self, programs=[], sensors=[]):
-        super().__init__(spec=Storage)
-        self.store_sensors = Mock(side_effect=self.__store_sensors_mock)
-        self.load_sensors = Mock(side_effect=self.__load_sensors_mock)
-        self.store_programs = Mock(side_effect=self.__store_programs_mock)
-        self.load_programs = Mock(side_effect=self.__load_programs_mock)
-        self.__programs = programs
-        self.__sensors = sensors
-
-    def __load_sensors_mock(self):
-        return self.__sensors
-
-    def __store_sensors_mock(self, sensors):
-        self.__sensors = sensors
-
-    def __store_programs_mock(self, programs):
-        self.__programs = programs
-
-    def __load_programs_mock(self):
-        return self.__programs
 
 
 class ControllerTestCase(unittest.TestCase):

@@ -1,0 +1,59 @@
+[33mcommit e8a3950ae30452ecbadda9c9ef65d334bad02c7f[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Thu May 13 22:15:58 2021 +0200
+
+    Tests updated
+
+[33mcommit 3338988d732160842e8acefc2e8ed66c3abe99c1[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Wed May 12 22:55:15 2021 +0200
+
+    Tests update
+
+[33mcommit 2ef3568897f89f0cfb0d0f8ccf22db2a3f3b2a21[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Tue May 11 23:30:53 2021 +0200
+
+    Fix tests and add more of them
+
+[33mcommit b0cf3668e576e6b3f9077a7104008eddd67e8e17[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Sat Apr 3 22:07:05 2021 +0200
+
+    Change server classes to meet new requirements
+
+[33mcommit 2b40f7bf2fe1af320bab667f3c7a20abfa90c9c3[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Sat Apr 3 20:47:11 2021 +0200
+
+    Change controller and program classes to meet new requirements
+
+[33mcommit 9345e78121d1ec0e8fe727479445e71839fb1470[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Wed Dec 9 22:23:50 2020 +0100
+
+    Add tool to cgenerate html doc from yaml
+
+[33mcommit 2c695e3816d45d09a1ee3a9cf0c86a6989bf268f[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Wed Dec 9 22:08:24 2020 +0100
+
+    Add swagger doc for server api
+
+[33mcommit 9175ab60b3462004cb0c035bee6d49ae2136ed0f[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Wed Dec 9 20:09:57 2020 +0100
+
+    Add vscode editor files to ignored
+
+[33mcommit 2fff4b30b5b5eb62cb1087a2044c4a194562b2d6[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Wed Nov 11 15:03:55 2020 +0100
+
+    Add pycharm configuration screenshots
+
+[33mcommit 093ad449c7266f8981eb1c8247525ab4d33cfd50[m
+Author: Piotr Marcinkowski <piotrmarc@gmail.com>
+Date:   Wed Nov 11 15:03:26 2020 +0100
+
+    Fix unit tests RPi.GPIO module visibility

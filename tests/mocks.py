@@ -5,6 +5,7 @@ from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundError, ThermSensorApi
 from app.hardware.relay_api import RelayApi
 from app.program import Program
+from app.storage import Storage
 
 
 class ThermSensorApiMock(Mock):
@@ -154,3 +155,26 @@ class ControllerMock(Mock):
             if program_id == self.programs[index].program_id:
                 return self.programs[index]
         return None
+
+
+class StorageMock(Mock):
+    def __init__(self, programs=[], sensors=[]):
+        super().__init__(spec=Storage)
+        self.store_sensors = Mock(side_effect=self.__store_sensors_mock)
+        self.load_sensors = Mock(side_effect=self.__load_sensors_mock)
+        self.store_programs = Mock(side_effect=self.__store_programs_mock)
+        self.load_programs = Mock(side_effect=self.__load_programs_mock)
+        self.__programs = programs
+        self.__sensors = sensors
+
+    def __load_sensors_mock(self):
+        return self.__sensors
+
+    def __store_sensors_mock(self, sensors):
+        self.__sensors = sensors
+
+    def __store_programs_mock(self, programs):
+        self.__programs = programs
+
+    def __load_programs_mock(self):
+        return self.__programs
