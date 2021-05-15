@@ -8,6 +8,7 @@ from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
 from app.storage import Storage
 from threading import RLock
+from event_bus import EventBus
 
 
 class Controller(object):
@@ -30,6 +31,11 @@ class Controller(object):
         self.__relay_api = relay_api if relay_api is not None else RelayApi.instance()
         self.__storage = storage
         self.__lock = RLock()
+        self.__bus = EventBus()
+
+    def __set_programs(self, programs):
+        self.__programs = programs
+        self.__bus.emit('programs_changed', programs)
 
     def __default_main_loop_exit_condition(self):
         # Never exit main loop by default, keep the program running, this is needed to alter the behavior in tests only
@@ -72,7 +78,7 @@ class Controller(object):
         Logger.info("Loading programs")
         self.__lock.acquire()
         try:
-            self.__programs = self.__storage.load_programs()
+            self.__set_programs(self.__storage.load_programs())
         finally:
             self.__lock.release()
         Logger.info("Programs loaded {}".format(self.__programs))
@@ -179,7 +185,7 @@ class Controller(object):
             try:
                 self.__storage.store_programs(programs)
                 Logger.info("Program created {}".format(str(program)))
-                self.__programs = programs
+                self.__set_programs(programs)
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))
@@ -216,7 +222,7 @@ class Controller(object):
             self.__validate_program(program, updated_programs, skip_index=program_index)
             try:
                 self.__storage.store_programs(updated_programs)
-                self.__programs = updated_programs
+                self.__set_programs(updated_programs)
                 Logger.info("Program modified {} -> {}".format(str(existing_program), str(program)))
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
@@ -279,7 +285,7 @@ class Controller(object):
                 self.__storage.store_programs(programs)
                 program.active = False
                 Logger.info("Program deactivated and deleted {}".format(str(program)))
-                self.__programs = programs
+                self.__set_programs(programs)
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))

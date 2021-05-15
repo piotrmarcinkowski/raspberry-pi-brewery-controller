@@ -36,7 +36,7 @@ Depending on used relay type it is possible to control them with low or high vol
 
 #### Dependencies ####
 
-The app is intended to run on Python 3.5
+The app is intended to run on Python 3.5+
 
 The code requires the dependencies defined in requirements.txt file to be installed. In order to do this type 
 
@@ -105,7 +105,7 @@ docker container run --detach --publish=8080:8080 raspberry-pi-brewery-controlle
 * https://github.com/timofurrer/w1thermsensor
 * https://sourceforge.net/p/raspberry-gpio-python/wiki/
 * https://github.com/willbuckner/rpi-gpio-development-mock
-
+* https://github.com/seanpar203/event-bus
 
 ### Who do I talk to? ###
 
