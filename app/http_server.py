@@ -33,7 +33,7 @@ def get_therm_sensors():
     response = []
     for sensor in sensors:
         # todo: refactor to remove json assembling here
-        response.append({"id": sensor.id, "name": sensor.name})
+        response.append({"id": sensor, "name": ""})
     return valid_request_response(json.dumps(response))
 
 

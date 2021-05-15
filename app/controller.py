@@ -2,13 +2,14 @@ import time
 import atexit
 import uuid
 from app.program import Program, ProgramState
-from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, ThermSensorError
+from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, ThermSensorError, SensorNotReadyError
 from app.logger import Logger
 from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
 from app.storage import Storage
 from threading import RLock
 from event_bus import EventBus
+from monitor import Monitor
 
 
 class Controller(object):
@@ -27,14 +28,16 @@ class Controller(object):
         super().__init__()
         self.__sensors = None
         self.__programs = []
-        self.__therm_sensor_api = therm_sensor_api if therm_sensor_api is not None else ThermSensorApi.instance()
-        self.__relay_api = relay_api if relay_api is not None else RelayApi.instance()
+        self.__monitors = []
+        self.__therm_sensor_api = therm_sensor_api
+        self.__relay_api = relay_api
         self.__storage = storage
         self.__lock = RLock()
         self.__bus = EventBus()
 
     def __set_programs(self, programs):
         self.__programs = programs
+        self.__monitors = [Monitor(program, self.__therm_sensor_api, self.__relay_api) for program in programs]
         self.__bus.emit('programs_changed', programs)
 
     def __default_main_loop_exit_condition(self):
@@ -55,9 +58,9 @@ class Controller(object):
 
         Logger.info("Staring main loop")
         while not main_loop_exit_condition():
-            programs = self.get_programs()
-            for program in programs:
-                program.update()
+            monitors = self.get_monitors()
+            for monitor in monitors:
+                monitor.check()
             try:
                 time.sleep(interval_secs)
             except KeyboardInterrupt:
@@ -70,9 +73,9 @@ class Controller(object):
         Logger.info("Cleaning up")
 
         Logger.info("Deactivating all programs")
-        programs = self.get_programs()
-        for program in programs:
-            program.active = False
+        monitors = self.get_monitors()
+        for monitor in monitors:
+            monitor.destroy()
 
     def __load_programs(self):
         Logger.info("Loading programs")
@@ -177,8 +180,7 @@ class Controller(object):
             program_generated_id = str(uuid.uuid4())
             created_program = Program(program_generated_id, program.program_name,
                                       program.sensor_id, program.heating_relay_index, program.cooling_relay_index,
-                                      program.min_temperature, program.max_temperature, program.active,
-                                      self.__therm_sensor_api, self.__relay_api)
+                                      program.min_temperature, program.max_temperature, program.active)
             programs = self.__programs.copy()
             self.__validate_program(created_program, programs)
             programs.append(created_program)
@@ -268,6 +270,18 @@ class Controller(object):
         finally:
             self.__lock.release()
 
+    def get_monitors(self):
+        """
+        Returns monitors list for existing programs
+        :return: List of monitors
+        :rtype: list
+        """
+        self.__lock.acquire()
+        try:
+            return self.__monitors
+        finally:
+            self.__lock.release()
+
     def delete_program(self, program_id):
         """
         Deletes specified program, deactivating it first
@@ -283,8 +297,7 @@ class Controller(object):
             program = programs.pop(program_index)
             try:
                 self.__storage.store_programs(programs)
-                program.active = False
-                Logger.info("Program deactivated and deleted {}".format(str(program)))
+                Logger.info("Program deleted {}".format(str(program)))
                 self.__set_programs(programs)
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
@@ -304,7 +317,7 @@ class Controller(object):
             if program_index < 0:
                 raise ProgramError("Program with the given ID not found:{}".format(program_id),
                                    ProgramError.ERROR_CODE_INVALID_ID)
-            return self.__programs[program_index].create_program_state()
+            return self.__programs[program_index].create_program_state(self.__therm_sensor_api, self.__relay_api)
         finally:
             self.__lock.release()
 

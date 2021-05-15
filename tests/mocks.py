@@ -10,27 +10,31 @@ from app.storage import Storage
 
 class ThermSensorApiMock(Mock):
     MOCKED_NOT_READY_SENSOR_ID = "not_ready_sensor"
-    MOCKED_SENSORS = [
-        {"id": "1001", "name": "sensor_1"},
-        {"id": "1002", "name": "sensor_2"},
-        {"id": "1003", "name": ""}
-    ]
+    MOCKED_SENSORS = ["1001", "1002", "1003", "1004"]
     MOCKED_SENSORS_TEMPERATURE = {
         "1001": 20.123,
         "1002": 19.234,
-        "1003": 18.345
+        "1003": 18.345,
+        "1004": 15.0
     }
 
     def __init__(self):
         super().__init__(spec=ThermSensorApi)
-        self.__prepare_sensor_list()
+        self.sensors = []
+        self.temperatures = {}
         self.get_sensor_id_list = Mock(side_effect=self.__mocked_get_sensor_id_list)
         self.get_sensor_temperature = Mock(side_effect=self.__mocked_get_sensor_temperature)
-        self.temperatures = {sensor_id: self.MOCKED_SENSORS_TEMPERATURE[sensor_id] for sensor_id in
-                             self.MOCKED_SENSORS_TEMPERATURE}
+        self.mock_sensors(ThermSensorApiMock.MOCKED_SENSORS)
+        self.mock_sensors_temperature(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE)
+
+    def mock_sensors(self, sensors):
+        self.sensors = sensors
+
+    def mock_sensors_temperature(self, temperatures):
+        self.temperatures = temperatures
 
     def __mocked_get_sensor_id_list(self):
-        return self.sensor_mock_list
+        return self.sensors
 
     def __mocked_get_sensor_temperature(self, sensor_id):
         if sensor_id == self.MOCKED_NOT_READY_SENSOR_ID:
@@ -40,23 +44,19 @@ class ThermSensorApiMock(Mock):
         else:
             raise NoSensorFoundError(sensor_id)
 
-    def __prepare_sensor_list(self):
-        self.sensor_mock_list = []
-        for sensor_data in self.MOCKED_SENSORS:
-            sensor_mock = Mock()
-            sensor_mock.id = sensor_data["id"]
-            sensor_mock.name = sensor_data["name"]
-            self.sensor_mock_list.append(sensor_mock)
-
 
 class RelayApiMock(Mock):
     def __init__(self):
         super().__init__(spec=RelayApi)
         self.relays = {relay_index: 0 for relay_index in range(len(RelayApi.RELAY_GPIO_CHANNELS))}
         self.get_relay_state = Mock(side_effect=self.__get_relay_state)
+        self.set_relay_state = Mock(side_effect=self.__set_relay_state)
 
     def __get_relay_state(self, relay_index):
         return self.relays[relay_index]
+
+    def __set_relay_state(self, relay_index, relay_state):
+        self.relays[relay_index] = relay_state
 
 
 class ControllerMock(Mock):
@@ -66,9 +66,7 @@ class ControllerMock(Mock):
         super().__init__(spec=Controller)
 
         self.therm_sensor_api = ThermSensorApiMock()
-        ThermSensorApi.instance = Mock(return_value=self.therm_sensor_api)
         self.relay_api = RelayApiMock()
-        RelayApi.instance = Mock(return_value=self.relay_api)
 
         self.get_therm_sensors = Mock(side_effect=self.therm_sensor_api.get_sensor_id_list)
         self.get_therm_sensor_temperature = Mock(side_effect=self.therm_sensor_api.get_sensor_temperature)
@@ -148,7 +146,7 @@ class ControllerMock(Mock):
 
     def __mocked_get_program_state(self, program_id):
         program = self.__get_program_by_id(program_id)
-        return program.create_program_state()
+        return program.create_program_state(self.therm_sensor_api, self.relay_api)
 
     def __get_program_by_id(self, program_id):
         for index in range(len(self.programs)):

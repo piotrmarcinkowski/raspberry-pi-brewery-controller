@@ -1,11 +1,10 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 from app.controller import Controller, ProgramError
 from app.hardware.therm_sensor_api import ThermSensorApi, NoSensorFoundError, SensorNotReadyError
 from app.program import Program
-from app.hardware.relay_api import RelayApi
-from tests.mocks import StorageMock
+from tests.mocks import StorageMock, ThermSensorApiMock, RelayApiMock
 
 PROGRAM_NAME = "ProgramName"
 PROGRAM_CRC = "CRC"
@@ -21,14 +20,11 @@ class ControllerTestCase(unittest.TestCase):
     MOCKED_SENSOR_IDS = ["1001", "1002", "1003", "1004"]
     MOCKED_SENSOR_TEMP = {"1001": 12.3, "1002": 23.4, "1003": 22.0, "1004": 19.4}
 
-    def mock_get_sensor_temp(self, sensor_id):
-        return self.MOCKED_SENSOR_TEMP[sensor_id]
-
     def setUp(self):
-        self.therm_sensor_api_mock = Mock(spec=ThermSensorApi)
-        self.therm_sensor_api_mock.get_sensor_id_list = Mock(return_value=self.MOCKED_SENSOR_IDS)
-        self.therm_sensor_api_mock.get_sensor_temperature = Mock(side_effect=self.mock_get_sensor_temp)
-        self.relay_api_mock = Mock(spec=RelayApi)
+        self.therm_sensor_api_mock = ThermSensorApiMock()
+        self.therm_sensor_api_mock.mock_sensors(ControllerTestCase.MOCKED_SENSOR_IDS)
+        self.therm_sensor_api_mock.mock_sensors_temperature(ControllerTestCase.MOCKED_SENSOR_TEMP)
+        self.relay_api_mock = RelayApiMock()
         self.storage_mock = StorageMock()
         self.controller = Controller(
             therm_sensor_api=self.therm_sensor_api_mock,
@@ -143,7 +139,6 @@ class ControllerTestCase(unittest.TestCase):
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program2)
         self.assertEqual(programs[1], program3)
-        self.assertFalse(program1.active)
         self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_delete_existing_program_1(self):
@@ -154,7 +149,6 @@ class ControllerTestCase(unittest.TestCase):
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program3)
-        self.assertFalse(program2.active)
         self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_delete_existing_program_2(self):
@@ -165,7 +159,6 @@ class ControllerTestCase(unittest.TestCase):
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
-        self.assertFalse(program3.active)
         self.storage_mock.store_programs.assert_called_with(programs)
 
     def test_should_raise_when_deleting_program_with_invalid_index(self):
@@ -251,10 +244,10 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[1], program2)
         self.assertEqual(programs[2], program3)
 
-    def test_should_load_programs_and_start_updating_them_when_run(self):
-        program1 = Mock(spec=Program)
-        program2 = Mock(spec=Program)
-        program3 = Mock(spec=Program)
+    def test_should_load_programs_and_start_monitoring_when_run(self):
+        program1 = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get enabled
+        program2 = create_test_program("1002", 1, 5, 25.0, 28.0)  # heating should get enabled
+        program3 = create_test_program("1003", 3, 6, 0.0, 30.0)  # no action needed
         self.storage_mock = StorageMock(programs=[program1, program2, program3])
 
         main_loop_exit_condition = TestLoopExitCondition()
@@ -268,17 +261,11 @@ class ControllerTestCase(unittest.TestCase):
             interval_secs=0.01,
             main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
 
-        program1.update.assert_called_with()
-        program2.update.assert_called_with()
-        program3.update.assert_called_with()
+        calls = [call(4, 1), call(1, 1)]
+        self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=True)
 
-    def test_should_start_updating_created_program(self):
-        program = Mock(spec=Program)
-        program.sensor_id = "1001"
-        program.cooling_relay_index = 1
-        program.heating_relay_index = 2
-        program.min_temperature = 18
-        program.max_temperature = 19
+    def test_should_start_monitor_created_program(self):
+        program = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get enabled
 
         # the following task will be run on iteration 2, simulating program creation
         create_program_task = CreateProgramTask(2, self.controller, program)
@@ -290,7 +277,7 @@ class ControllerTestCase(unittest.TestCase):
             main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
 
         # test if program gets updated after being added to controller
-        program.update.assert_called_with()
+        self.relay_api_mock.set_relay_state.assert_called_with(4, 1)
 
     def test_should_reject_sensor_name_change_for_non_existing_sensor(self):
         with self.assertRaises(NoSensorFoundError):
@@ -329,10 +316,7 @@ class CreateProgramTask(IterationTask):
         self.__program = program
 
     def run(self):
-        created_program = self.__controller.create_program(self.__program)
-        # controller creates a copy of given program to generate unique id for it.
-        # copy here all necessary properties, eg. mocked methods that will be asserted
-        created_program.update = self.__program.update
+        self.__controller.create_program(self.__program)
 
 
 class TestLoopExitCondition:

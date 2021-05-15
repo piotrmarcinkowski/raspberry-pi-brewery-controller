@@ -1,6 +1,3 @@
-from app.hardware.therm_sensor_api import ThermSensorApi, SensorNotReadyError, NoSensorFoundError
-from app.hardware.relay_api import RelayApi
-from app.logger import Logger
 import json
 
 
@@ -27,8 +24,7 @@ class Program(object):
                  cooling_relay_index=UNDEFINED_COOLING_RELAY_INDEX,
                  min_temperature=UNDEFINED_MIN_TEMP,
                  max_temperature=UNDEFINED_MAX_TEMP,
-                 active=UNDEFINED_ACTIVE,
-                 therm_sensor_api=None, relay_api=None):
+                 active=UNDEFINED_ACTIVE):
         """
         Creates program instance.
         :param program_id: Id of the program in UUID format
@@ -45,10 +41,6 @@ class Program(object):
         :type min_temperature: float
         :param max_temperature: Maximum allowed temperature. Cooling will be activated if exceeded
         :type max_temperature: float
-        :param therm_sensor_api: Api to obtain therm sensors and their measurements
-        :type therm_sensor_api: ThermSensorApi
-        :param relay_api: Api to read and modify relay states
-        :type relay_api: RelayApi
         :param active: Sets the program to activated or deactivated. Deactivated program skips any actions
         :type active: bool
         """
@@ -60,64 +52,12 @@ class Program(object):
         self.__cooling_relay_index = cooling_relay_index
         self.__min_temperature = min_temperature
         self.__max_temperature = max_temperature
-        self.__relay_api = relay_api if relay_api is not None else RelayApi.instance()
-        self.__therm_sensor_api = therm_sensor_api if therm_sensor_api is not None else ThermSensorApi.instance()
         self.__active = active
-        self.__heating_active = False
-        self.__cooling_active = False
 
-    def update(self):
-        """
-        Reads temperature from thermal sensor and takes actions (enable cooling_active, heating_active)
-        if it's beyond allowed range
-        """
-        if not self.active:
-            return
-
-        try:
-            current_temperature = self.__therm_sensor_api.get_sensor_temperature(self.__sensor_id)
-        except SensorNotReadyError:
-            Logger.error("Program update skipped - sensor not ready - program: {}".format(str(self)))
-            return
-        except NoSensorFoundError:
-            Logger.error("Program update error - no sensor found - deactivating program: {}".format(str(self)))
-            self.active = False
-            return
-
-        if not self.__cooling_active:
-            self.__cooling_active = current_temperature > self.__max_temperature
-        else:
-            middle_temp = (self.__max_temperature + self.__min_temperature) / 2
-            self.__cooling_active = current_temperature > middle_temp
-
-        if not self.__heating_active:
-            self.__heating_active = current_temperature < self.__min_temperature
-        else:
-            middle_temp = (self.__max_temperature + self.__min_temperature) / 2
-            self.__heating_active = current_temperature < middle_temp
-
-        self.__set_cooling(self.__cooling_active, current_temperature)
-        self.__set_heating(self.__heating_active, current_temperature)
 
     @property
     def active(self):
         return self.__active
-
-    @active.setter
-    def active(self, active):
-        """
-        Activates or deactivates a program. Activated program will call update automatically. Deactivated program
-        will also deactivate all controlled relays
-        :param active: True to activate the program, False otherwise
-        """
-        if self.__active is active:
-            return
-        self.__active = active
-        if active:
-            self.update()
-        else:
-            self.__set_cooling(False)
-            self.__set_heating(False)
 
     @property
     def program_id(self):
@@ -153,35 +93,15 @@ class Program(object):
     def max_temperature(self):
         return self.__max_temperature
 
-    def __set_cooling(self, cooling, current_temperature=0.0):
-        if self.__cooling_relay_index == -1:
-            return
-        relay_state = 1 if cooling else 0
-        if self.__relay_api.get_relay_state(self.__cooling_relay_index) != relay_state:
-            Logger.info("{} relay:{} temperature:{:.2f} {}".format(
-                "Activating" if relay_state == 1 else "Deactivating",
-                self.__cooling_relay_index, current_temperature, self))
-            self.__relay_api.set_relay_state(self.__cooling_relay_index, relay_state)
-
-    def __set_heating(self, heating, current_temperature=0.0):
-        if self.__heating_relay_index == -1:
-            return
-        relay_state = 1 if heating else 0
-        if self.__relay_api.get_relay_state(self.__heating_relay_index) != relay_state:
-            Logger.info("{} relay:{} temperature:{:.2f} {}".format(
-                "Activating" if relay_state == 1 else "Deactivating",
-                self.__cooling_relay_index, current_temperature, self))
-            self.__relay_api.set_relay_state(self.__heating_relay_index, relay_state)
-
-    def create_program_state(self):
+    def create_program_state(self, therm_sensor_api, relay_api):
         heating_activated = False
         if self.heating_relay_index != Program.UNDEFINED_HEATING_RELAY_INDEX:
-            heating_activated = self.__relay_api.get_relay_state(self.heating_relay_index)
+            heating_activated =relay_api.get_relay_state(self.heating_relay_index)
         cooling_activated = False
         if self.cooling_relay_index != Program.UNDEFINED_HEATING_RELAY_INDEX:
-            cooling_activated = self.__relay_api.get_relay_state(self.cooling_relay_index)
+            cooling_activated = relay_api.get_relay_state(self.cooling_relay_index)
         return ProgramState(self.program_id,
-                            self.__therm_sensor_api.get_sensor_temperature(self.sensor_id),
+                            therm_sensor_api.get_sensor_temperature(self.sensor_id),
                             self.program_crc,
                             heating_activated, cooling_activated)
 
@@ -194,9 +114,7 @@ class Program(object):
             cooling_relay_index=program.cooling_relay_index,
             min_temperature=program.min_temperature,
             max_temperature=program.max_temperature,
-            active=program.active,
-            therm_sensor_api=program.__therm_sensor_api,
-            relay_api=program.__relay_api
+            active=program.active
         )
 
     def to_json_data(self):

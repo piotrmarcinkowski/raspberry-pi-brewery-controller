@@ -29,23 +29,21 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.get(URL_PATH + URL_RESOURCE_SENSORS, follow_redirects=True)
         response_json = json.loads(response.data.decode("utf-8"))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response_json), 3)
-        self.assertEqual(response_json[0]["id"], ThermSensorApiMock.MOCKED_SENSORS[0]["id"])
-        self.assertEqual(response_json[0]["name"], ThermSensorApiMock.MOCKED_SENSORS[0]["name"])
-        self.assertEqual(response_json[1]["id"], ThermSensorApiMock.MOCKED_SENSORS[1]["id"])
-        self.assertEqual(response_json[1]["name"], ThermSensorApiMock.MOCKED_SENSORS[1]["name"])
-        self.assertEqual(response_json[2]["id"], ThermSensorApiMock.MOCKED_SENSORS[2]["id"])
-        self.assertEqual(response_json[2]["name"], ThermSensorApiMock.MOCKED_SENSORS[2]["name"])
+        self.assertEqual(len(ThermSensorApiMock.MOCKED_SENSORS), len(response_json), 4)
+        self.assertEqual(response_json[0]["id"], ThermSensorApiMock.MOCKED_SENSORS[0])
+        self.assertEqual(response_json[1]["id"], ThermSensorApiMock.MOCKED_SENSORS[1])
+        self.assertEqual(response_json[2]["id"], ThermSensorApiMock.MOCKED_SENSORS[2])
+        self.assertEqual(response_json[3]["id"], ThermSensorApiMock.MOCKED_SENSORS[3])
 
     def test_should_return_therm_sensor_temperature(self):
-        sensor_id = ThermSensorApiMock.MOCKED_SENSORS[0]["id"]
+        sensor_id = ThermSensorApiMock.MOCKED_SENSORS[0]
         response = self.app.get(URL_PATH + URL_RESOURCE_SENSORS + "/" + sensor_id, follow_redirects=True)
         response_json = json.loads(response.data.decode("utf-8"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response_json["id"], sensor_id)
         self.assertEqual(response_json["temperature"], ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor_id])
 
-        sensor_id = ThermSensorApiMock.MOCKED_SENSORS[1]["id"]
+        sensor_id = ThermSensorApiMock.MOCKED_SENSORS[1]
         response = self.app.get(URL_PATH + URL_RESOURCE_SENSORS + "/" + sensor_id, follow_redirects=True)
         response_json = json.loads(response.data.decode("utf-8"))
         self.assertEqual(response.status_code, 200)
@@ -65,7 +63,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertNotEqual(response.data, b"")
 
     def test_should_create_program(self):
-        request_content = {"name": "test_program_name", "sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0]["id"],
+        request_content = {"name": "test_program_name", "sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0],
                            "heating_relay_index": 1, "cooling_relay_index": 2,
                            "min_temp": 16.0, "max_temp": 18.0, "active": True}
         expected_generated_id = self.controller_mock.get_next_program_id()
@@ -85,7 +83,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(request_content["active"], created_program.active)
 
     def test_should_modify_program(self):
-        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
@@ -93,7 +91,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.data, b"")
         created_program = self.controller_mock.programs[0]
 
-        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[1]["id"], "heating_relay_index": 3,
+        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[1], "heating_relay_index": 3,
                            "cooling_relay_index": 4, "min_temp": 17.0, "max_temp": 19.0, "active": False}
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/" + created_program.program_id, follow_redirects=True,
                                  json=request_content)
@@ -112,7 +110,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(modified_program.active, request_content["active"])
 
     def test_should_delete_program(self):
-        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
@@ -126,7 +124,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(len(self.controller_mock.programs), 0)
 
     def test_should_return_status_403_when_program_creation_was_rejected(self):
-        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         self.controller_mock.raise_error_on_program_create()
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
@@ -135,7 +133,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
 
     def test_should_return_status_403_when_program_modification_was_rejected(self):
-        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         self.controller_mock.raise_error_on_program_modify()
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
@@ -144,7 +142,7 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
 
     def test_should_return_status_404_on_modify_when_invalid_program_id(self):
-        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0]["id"], "heating_relay_index": 1,
+        request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
                            "cooling_relay_index": 2, "min_temp": 16.0, "max_temp": 18.0, "active": True}
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/invalid_program_id", follow_redirects=True,
                                  json=request_content)
@@ -207,11 +205,8 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(response_json[-1]["msg"], "error msg")
 
     def test_should_return_current_temperature_of_the_given_program(self):
-        sensor = ThermSensorApiMock.MOCKED_SENSORS[0]["id"]
-        self.controller_mock.programs.append(
-            Program("program_id1", "program_name1", sensor, 2, 4, 15.0, 15.5, active=True))
-
-        created_program = self.controller_mock.programs[0]
+        sensor = ThermSensorApiMock.MOCKED_SENSORS[0]
+        created_program = self.__create_program(sensor, 2, 4, 15.0, 15.5, True)
 
         response = self.app.get(URL_PATH + URL_RESOURCE_STATES + "/" + created_program.program_id,
                                 follow_redirects=True)
@@ -222,13 +217,11 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(created_program.program_crc, response_json["crc"])
 
     def test_should_return_current_relay_state_of_the_given_program(self):
-        sensor = ThermSensorApiMock.MOCKED_SENSORS[0]["id"]
+        sensor = ThermSensorApiMock.MOCKED_SENSORS[0]
         cooling_relay = 2
         heating_relay = 4
-        self.controller_mock.programs.append(
-            Program("program_id1", "program_name1", sensor, heating_relay, cooling_relay, 15.0, 15.5, active=True))
 
-        created_program = self.controller_mock.programs[0]
+        created_program = self.__create_program(sensor, heating_relay, cooling_relay, 6.0, 15.5, True)
 
         test_data = [
             {"temperature": 15.2, "heating_relay": 0, "cooling_relay": 0},
@@ -252,13 +245,11 @@ class HttpServerTestCase(unittest.TestCase):
             self.assertEqual(data["cooling_relay"], response_json["coolingActivated"], "Temperature: {}".format(sensor_temp))
 
     def test_should_return_different_crc_if_given_program_has_changed(self):
-        sensor = ThermSensorApiMock.MOCKED_SENSORS[0]["id"]
+        sensor = ThermSensorApiMock.MOCKED_SENSORS[0]
         cooling_relay = 2
         heating_relay = 4
-        self.controller_mock.programs.append(
-            Program("program_id1", "program_name1", sensor, heating_relay, cooling_relay, 15.0, 15.5, active=True))
 
-        created_program = self.controller_mock.programs[0]
+        created_program = self.__create_program(sensor, heating_relay, cooling_relay, 15.0, 15.5, True)
 
         # get program state and store its crc
         response = self.app.get(URL_PATH + URL_RESOURCE_STATES + "/" + created_program.program_id,
@@ -282,3 +273,11 @@ class HttpServerTestCase(unittest.TestCase):
         new_crc = response_json["crc"]
 
         self.assertNotEqual(crc, new_crc)
+
+    def __create_program(self, sensor, heating_relay, cooling_relay, min_temp, max_temp, active):
+        request_content = {"name": "test_program_name", "sensor_id": sensor,
+                           "heating_relay_index": heating_relay, "cooling_relay_index": cooling_relay,
+                           "min_temp": min_temp, "max_temp": max_temp, "active": active}
+        response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
+                                 json=request_content)
+        return self.controller_mock.programs[0]
