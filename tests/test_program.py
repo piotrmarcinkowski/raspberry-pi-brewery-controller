@@ -100,3 +100,46 @@ class TestProgram(unittest.TestCase):
         self.assertEqual(17.2, program.min_temperature)
         self.assertEqual(18.3, program.max_temperature)
         self.assertEqual(False, program.active)
+
+    def test_modify_with_program(self):
+        program1 = Program(program_id="id1", program_name="name1", sensor_id="sensor1",
+                                  heating_relay_index=1, cooling_relay_index=2,
+                                  min_temperature=15.0, max_temperature=17.0, active=True)
+        program2 = Program(program_id="id2", program_name="name2", sensor_id="sensor2",
+                                  heating_relay_index=3, cooling_relay_index=4,
+                                  min_temperature=15.1, max_temperature=17.1, active=True)
+
+        # create modified program using values of other program
+        modified = program1.modify_with(program2)
+        self.assertEqual(program1.program_id, modified.program_id)
+        self.assertEqual(program2.program_name, modified.program_name)
+        self.assertEqual(program2.sensor_id, modified.sensor_id)
+        self.assertEqual(program2.heating_relay_index, modified.heating_relay_index)
+        self.assertEqual(program2.cooling_relay_index, modified.cooling_relay_index)
+        self.assertEqual(program2.min_temperature, modified.min_temperature)
+        self.assertEqual(program2.max_temperature, modified.max_temperature)
+        self.assertEqual(program2.active, modified.active)
+
+        # create modified program using values of itself and some given extra values
+        modified = program1.modify_with(program1, program_name="extra_name")
+        self.assertEqual(program1.program_id, modified.program_id)
+        self.assertEqual("extra_name", modified.program_name)
+        self.assertEqual(program1.sensor_id, modified.sensor_id)
+        self.assertEqual(program1.heating_relay_index, modified.heating_relay_index)
+        self.assertEqual(program1.cooling_relay_index, modified.cooling_relay_index)
+        self.assertEqual(program1.min_temperature, modified.min_temperature)
+        self.assertEqual(program1.max_temperature, modified.max_temperature)
+        self.assertEqual(program1.active, modified.active)
+
+        # create modified program using values of itself and some given extra values (all values)
+        modified = program1.modify_with(program1, program_name="extra_name", sensor_id="extra_sensor",
+                                        heating_relay_index="extra_heat", cooling_relay_index="extra_cool",
+                                        min_temperature=10.0, max_temperature=11.0, active=False)
+        self.assertEqual(program1.program_id, modified.program_id)
+        self.assertEqual("extra_name", modified.program_name)
+        self.assertEqual("extra_sensor", modified.sensor_id)
+        self.assertEqual("extra_heat", modified.heating_relay_index)
+        self.assertEqual("extra_cool", modified.cooling_relay_index)
+        self.assertEqual(10.0, modified.min_temperature)
+        self.assertEqual(11.0, modified.max_temperature)
+        self.assertEqual(False, modified.active)

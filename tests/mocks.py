@@ -39,8 +39,11 @@ class ThermSensorApiMock(Mock):
     def __mocked_get_sensor_temperature(self, sensor_id):
         if sensor_id == self.MOCKED_NOT_READY_SENSOR_ID:
             raise SensorNotReadyError(sensor_id)
-        if sensor_id in ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE:
-            return self.temperatures[sensor_id]
+        if sensor_id in self.temperatures:
+            temperature = self.temperatures[sensor_id]
+            if temperature is None:
+                raise SensorNotReadyError(sensor_id)
+            return temperature
         else:
             raise NoSensorFoundError(sensor_id)
 

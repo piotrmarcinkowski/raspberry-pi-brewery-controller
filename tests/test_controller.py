@@ -245,8 +245,8 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[2], program3)
 
     def test_should_load_programs_and_start_monitoring_when_run(self):
-        program1 = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get enabled
-        program2 = create_test_program("1002", 1, 5, 25.0, 28.0)  # heating should get enabled
+        program1 = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get activated
+        program2 = create_test_program("1002", 1, 5, 25.0, 28.0)  # heating should get activated
         program3 = create_test_program("1003", 3, 6, 0.0, 30.0)  # no action needed
         self.storage_mock = StorageMock(programs=[program1, program2, program3])
 
@@ -265,7 +265,7 @@ class ControllerTestCase(unittest.TestCase):
         self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=True)
 
     def test_should_start_monitor_created_program(self):
-        program = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get enabled
+        program = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get activated
 
         # the following task will be run on iteration 2, simulating program creation
         create_program_task = CreateProgramTask(2, self.controller, program)
@@ -278,6 +278,42 @@ class ControllerTestCase(unittest.TestCase):
 
         # test if program gets updated after being added to controller
         self.relay_api_mock.set_relay_state.assert_called_with(4, 1)
+
+    def test_should_deactivate_old_heating_relay_if_it_has_been_modified_for_a_program(self):
+        self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 9.0})
+        program = self.add_test_program("1001", 1, -1, 10.0, 12.0)  # heating should get activated
+        # change heating relay
+        modified_program = program.modify_with(program, heating_relay_index=2)
+
+        modify_program_task = ModifyProgramTask(3, self.controller, modified_program)
+        main_loop_exit_condition = TestLoopExitCondition(max_iterations=3)
+        main_loop_exit_condition.add_task(modify_program_task)
+
+        self.controller.run(
+            interval_secs=0.01,
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
+
+        # test if after program was modified by changing it's cooling relay the old relay gets deactivated
+        calls = [call(1, 1), call(1, 0), call(2, 1)]
+        self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=False)
+
+    def test_should_deactivate_old_cooling_relay_if_it_has_been_modified_for_a_program(self):
+        self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 13.0})
+        program = self.add_test_program("1001", -1, 1, 10.0, 12.0)  # cooling should get activated
+        # change cooling relay
+        modified_program = program.modify_with(program, cooling_relay_index=2)
+
+        modify_program_task = ModifyProgramTask(3, self.controller, modified_program)
+        main_loop_exit_condition = TestLoopExitCondition(max_iterations=3)
+        main_loop_exit_condition.add_task(modify_program_task)
+
+        self.controller.run(
+            interval_secs=0.01,
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
+
+        # test if after program was modified by changing it's cooling relay the old relay gets deactivated
+        calls = [call(1, 1), call(1, 0), call(2, 1)]
+        self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=False)
 
     def test_should_reject_sensor_name_change_for_non_existing_sensor(self):
         with self.assertRaises(NoSensorFoundError):
@@ -317,6 +353,19 @@ class CreateProgramTask(IterationTask):
 
     def run(self):
         self.__controller.create_program(self.__program)
+
+
+class ModifyProgramTask(IterationTask):
+    """
+    Task that modifies existing program.
+    """
+    def __init__(self, iteration, controller, program):
+        super(ModifyProgramTask, self).__init__(iteration)
+        self.__controller = controller
+        self.__program = program
+
+    def run(self):
+        self.__controller.modify_program(self.__program.program_id, self.__program)
 
 
 class TestLoopExitCondition:

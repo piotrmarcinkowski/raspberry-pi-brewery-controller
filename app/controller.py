@@ -13,7 +13,7 @@ from monitor import Monitor
 
 
 class Controller(object):
-    RELAYS_COUNT = 8
+    RELAYS_COUNT = len(RelayApi.RELAY_GPIO_CHANNELS)
 
     def __init__(self, therm_sensor_api=None, relay_api=None, storage=Storage()):
         """
@@ -50,15 +50,26 @@ class Controller(object):
         maintain requested temperature by turning on/off coolers/heaters attached to relays
         """
         Logger.info("Starting controller")
+
         atexit.register(self.__clean_up)
         self.__load_programs()
 
         if main_loop_exit_condition is None:
             main_loop_exit_condition = self.__default_main_loop_exit_condition
 
-        Logger.info("Staring main loop")
+        Logger.info("Starting main loop")
+
         while not main_loop_exit_condition():
-            monitors = self.get_monitors()
+
+            self.__lock.acquire()
+            try:
+                programs = self.__programs
+                monitors = self.__monitors
+            finally:
+                self.__lock.release()
+
+            self.__deactivate_all_unassigned_relays(programs)
+
             for monitor in monitors:
                 monitor.check()
             try:
@@ -70,12 +81,23 @@ class Controller(object):
         Logger.info("Controller stopped")
 
     def __clean_up(self):
-        Logger.info("Cleaning up")
-
         Logger.info("Deactivating all programs")
-        monitors = self.get_monitors()
-        for monitor in monitors:
-            monitor.destroy()
+        # remove all programs
+        self.__set_programs([])
+        # deactivate all relays that are not assigned to any program
+        self.__deactivate_all_unassigned_relays()
+
+    def __deactivate_all_unassigned_relays(self, programs=[]):
+        for relay_index in range(Controller.RELAYS_COUNT):
+            if not Controller.__is_relay_assigned(relay_index, programs) and \
+                    self.__relay_api.get_relay_state(relay_index):
+                self.__relay_api.set_relay_state(relay_index, 0)
+
+    @staticmethod
+    def __is_relay_assigned(relay_index, programs):
+        for program in programs:
+            return program.cooling_relay_index == relay_index or program.heating_relay_index == relay_index
+        return False
 
     def __load_programs(self):
         Logger.info("Loading programs")
@@ -270,18 +292,6 @@ class Controller(object):
         finally:
             self.__lock.release()
 
-    def get_monitors(self):
-        """
-        Returns monitors list for existing programs
-        :return: List of monitors
-        :rtype: list
-        """
-        self.__lock.acquire()
-        try:
-            return self.__monitors
-        finally:
-            self.__lock.release()
-
     def delete_program(self, program_id):
         """
         Deletes specified program, deactivating it first
@@ -320,6 +330,7 @@ class Controller(object):
             return self.__programs[program_index].create_program_state(self.__therm_sensor_api, self.__relay_api)
         finally:
             self.__lock.release()
+
 
 class ProgramError(Exception):
     """Exception class for program errors """

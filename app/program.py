@@ -105,16 +105,18 @@ class Program(object):
                             self.program_crc,
                             heating_activated, cooling_activated)
 
-    def modify_with(self, program):
+    def modify_with(self, program, program_name=None, sensor_id=None,
+                    heating_relay_index=None, cooling_relay_index=None,
+                    min_temperature=None, max_temperature=None, active=None):
         return Program(
             program_id=self.program_id,
-            program_name=program.program_name,
-            sensor_id=program.sensor_id,
-            heating_relay_index=program.heating_relay_index,
-            cooling_relay_index=program.cooling_relay_index,
-            min_temperature=program.min_temperature,
-            max_temperature=program.max_temperature,
-            active=program.active
+            program_name=program.program_name if program_name is None else program_name,
+            sensor_id=program.sensor_id if sensor_id is None else sensor_id,
+            heating_relay_index=program.heating_relay_index if heating_relay_index is None else heating_relay_index,
+            cooling_relay_index=program.cooling_relay_index if cooling_relay_index is None else cooling_relay_index,
+            min_temperature=program.min_temperature if min_temperature is None else min_temperature,
+            max_temperature=program.max_temperature if max_temperature is None else max_temperature,
+            active=program.active if active is None else active
         )
 
     def to_json_data(self):

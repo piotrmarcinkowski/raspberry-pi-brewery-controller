@@ -36,13 +36,18 @@ class Monitor(object):
 
         try:
             current_temperature = self.__therm_sensor_api.get_sensor_temperature(self.__program.sensor_id)
-        except SensorNotReadyError:
+        except SensorNotReadyError as e:
             Logger.error("Program check skipped - sensor not ready - program: {}".format(str(self)))
+            self.__set_error(e)
+            self.__ensure_relays_are_disabled()
             return
-        except NoSensorFoundError:
+        except NoSensorFoundError as e:
             Logger.error("Program check error - no sensor found - program: {}".format(str(self)))
-            self.raise_error()
+            self.__set_error(e)
+            self.__ensure_relays_are_disabled()
             return
+
+        self.__set_error(None)
 
         program_min_temp = self.__program.min_temperature
         program_max_temp = self.__program.max_temperature
@@ -53,9 +58,9 @@ class Monitor(object):
             cooling_active = self.__is_cooling()
             cooling_necessary = cooling_active
             if cooling_active:
-                cooling_necessary = current_temperature >= program_middle_temp
+                cooling_necessary = current_temperature > program_middle_temp
             else:
-                cooling_necessary = current_temperature >= program_max_temp
+                cooling_necessary = current_temperature > program_max_temp
             self.__set_cooling(cooling_necessary)
 
         heating_available = self.__heating_available()
@@ -63,16 +68,22 @@ class Monitor(object):
             heating_active = self.__is_heating()
             heating_necessary = heating_active
             if heating_active:
-                heating_necessary = current_temperature <= program_middle_temp
+                heating_necessary = current_temperature < program_middle_temp
             else:
-                heating_necessary = current_temperature <= program_min_temp
+                heating_necessary = current_temperature < program_min_temp
             self.__set_heating(heating_necessary)
 
     def __ensure_relays_are_disabled(self):
-        pass
+        if self.__cooling_available() and self.__is_cooling():
+            self.__set_cooling(False)
+        if self.__heating_available() and self.__is_heating():
+            self.__set_heating(False)
 
-    def raise_error(self):
-        pass
+    def __set_error(self, error):
+        self.error = error
+
+    def get_error(self):
+        return self.error
 
     def __cooling_available(self):
         return self.__program.cooling_relay_index != -1
@@ -107,7 +118,3 @@ class Monitor(object):
                 "Activating" if relay_state == 1 else "Deactivating",
                 heating_relay_index, self.__program))
             self.__relay_api.set_relay_state(heating_relay_index, relay_state)
-
-    def destroy(self):
-        self.__set_cooling(False)
-        self.__set_heating(False)

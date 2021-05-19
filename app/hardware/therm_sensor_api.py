@@ -1,5 +1,4 @@
 import app.hardware.hw_config as hw_config
-from app.hardware.fake_hw import FakeHardware
 
 if hw_config.RUN_ON_RASPBERRY:
     from w1thermsensor import W1ThermSensor
