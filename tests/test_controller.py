@@ -245,9 +245,9 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(programs[2], program3)
 
     def test_should_load_programs_and_start_monitoring_when_run(self):
-        program1 = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get activated
-        program2 = create_test_program("1002", 1, 5, 25.0, 28.0)  # heating should get activated
-        program3 = create_test_program("1003", 3, 6, 0.0, 30.0)  # no action needed
+        program1 = create_test_program("1001", 2, 4, 2.0, 3.0, program_id="id1")  # cooling should get activated
+        program2 = create_test_program("1002", 1, 5, 25.0, 28.0, program_id="id2")  # heating should get activated
+        program3 = create_test_program("1003", 3, 6, 0.0, 30.0, program_id="id3")  # no action needed
         self.storage_mock = StorageMock(programs=[program1, program2, program3])
 
         main_loop_exit_condition = TestLoopExitCondition()
@@ -263,6 +263,23 @@ class ControllerTestCase(unittest.TestCase):
 
         calls = [call(4, 1), call(1, 1)]
         self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=True)
+
+    def test_should_throw_if_stored_programs_are_incomplete(self):
+        program1 = create_test_program("1001", 2, 4, 2.0, 3.0, program_id="program_id")
+        program2 = create_test_program("1002", 1, 5, 25.0, 28.0)  # program with no id
+        self.storage_mock = StorageMock(programs=[program1, program2])
+
+        main_loop_exit_condition = TestLoopExitCondition()
+
+        self.controller = Controller(
+            therm_sensor_api=self.therm_sensor_api_mock,
+            relay_api=self.relay_api_mock,
+            storage=self.storage_mock)
+
+        with self.assertRaises(ProgramError):
+            self.controller.run(
+                interval_secs=0.01,
+                main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
 
     def test_should_start_monitor_created_program(self):
         program = create_test_program("1001", 2, 4, 2.0, 3.0)  # cooling should get activated

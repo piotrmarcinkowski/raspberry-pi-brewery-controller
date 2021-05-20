@@ -79,6 +79,22 @@ class TestMonitor(unittest.TestCase):
         self.then_cooling_is(0)
         self.then_heating_is(0)
 
+    def test_should_stop_controlling_cooling_when_program_gets_deactivated(self):
+        self.givenProgramWithMinMaxTemp(18.0, 18.6, active=True)
+        self.when_temperature_is(18.6)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+        self.when_temperature_is(18.61)
+        self.then_cooling_is(1)
+        self.then_heating_is(0)
+        self.when_temperature_is(18.3)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+        self.when_program_deactivated()
+        self.when_temperature_is(18.61)
+        self.then_cooling_is(0)
+        self.then_heating_is(0)
+
     def test_should_start_controlling_cooling_when_program_gets_activated(self):
         self.givenProgramWithMinMaxTemp(18.0, 18.6, active=False)
         self.when_temperature_is(18.6)
@@ -111,8 +127,8 @@ class TestMonitor(unittest.TestCase):
         self.then_cooling_is(0)
         self.then_heating_is(1)
 
-        def test_should_idle_if_temperature_raises_but_is_within_defined_range(self):
-            self.givenProgramWithMinMaxTemp(18.0, 18.6)
+    def test_should_idle_if_temperature_raises_but_is_within_defined_range(self):
+        self.givenProgramWithMinMaxTemp(18.0, 18.6)
 
         self.when_temperature_is(18.5)
         self.then_cooling_is(0)
@@ -206,22 +222,6 @@ class TestMonitor(unittest.TestCase):
         self.when_temperature_is(18.60)
         self.then_cooling_is(0)
         self.then_heating_is(0)
-        self.when_temperature_is(18.61)
-        self.then_cooling_is(0)
-        self.then_heating_is(0)
-
-    def test_should_stop_controlling_cooling_when_program_gets_deactivated(self):
-        self.givenProgramWithMinMaxTemp(18.0, 18.6, active=True)
-        self.when_temperature_is(18.6)
-        self.then_cooling_is(0)
-        self.then_heating_is(0)
-        self.when_temperature_is(18.61)
-        self.then_cooling_is(1)
-        self.then_heating_is(0)
-        self.when_temperature_is(18.3)
-        self.then_cooling_is(0)
-        self.then_heating_is(0)
-        self.when_program_deactivated()
         self.when_temperature_is(18.61)
         self.then_cooling_is(0)
         self.then_heating_is(0)

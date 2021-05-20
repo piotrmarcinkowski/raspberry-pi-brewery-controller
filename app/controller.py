@@ -15,7 +15,7 @@ from monitor import Monitor
 class Controller(object):
     RELAYS_COUNT = len(RelayApi.RELAY_GPIO_CHANNELS)
 
-    def __init__(self, therm_sensor_api=None, relay_api=None, storage=Storage()):
+    def __init__(self, therm_sensor_api=None, relay_api=None, storage=None):
         """
         Creates controller instance.
         :param therm_sensor_api: Api to obtain therm sensors and their measurements
@@ -31,7 +31,7 @@ class Controller(object):
         self.__monitors = []
         self.__therm_sensor_api = therm_sensor_api
         self.__relay_api = relay_api
-        self.__storage = storage
+        self.__storage = storage if storage is not None else Storage()
         self.__lock = RLock()
         self.__bus = EventBus()
 
@@ -103,7 +103,11 @@ class Controller(object):
         Logger.info("Loading programs")
         self.__lock.acquire()
         try:
-            self.__set_programs(self.__storage.load_programs())
+            programs = self.__storage.load_programs()
+            for program in programs:
+                if not program.program_id:
+                    raise ProgramError("Stored program has no id: {}".format(program))
+            self.__set_programs(programs)
         finally:
             self.__lock.release()
         Logger.info("Programs loaded {}".format(self.__programs))
