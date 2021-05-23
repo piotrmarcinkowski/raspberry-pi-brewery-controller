@@ -345,6 +345,28 @@ class ControllerTestCase(unittest.TestCase):
         sensor = self.controller.set_therm_sensor_name("1001", "sensor_name")
         self.assertTrue(sensor in self.controller.get_therm_sensors())
 
+    def test_should_return_state_for_given_program(self):
+        self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 13.0})
+        program = self.add_test_program("1001", -1, 1, 10.0, 12.0)
+
+        state = self.controller.get_program_state(program.program_id)
+
+        self.assertEqual(program.program_id, state.program_id)
+        self.assertIsNotNone(state.program_crc)
+        self.assertIsNotNone(state.cooling_activated)
+        self.assertIsNotNone(state.heating_activated)
+        self.assertIsNotNone(state.current_temperature)
+
+    def test_should_return_states_for_all_programs(self):
+        self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 13.0, "1002": 14.0})
+        program1 = self.add_test_program("1001", -1, 1, 10.0, 12.0)
+        program2 = self.add_test_program("1002", 1, -1, 15.0, 16.0)
+
+        states = self.controller.get_program_states()
+
+        self.assertEqual(program1.program_id, states[0].program_id)
+        self.assertEqual(program2.program_id, states[1].program_id)
+
 
 class IterationTask:
     """

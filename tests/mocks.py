@@ -78,6 +78,7 @@ class ControllerMock(Mock):
         self.delete_program = Mock(side_effect=self.__mocked_delete_program)
         self.get_programs = Mock(side_effect=self.__mocked_get_programs)
         self.get_program_state = Mock(side_effect=self.__mocked_get_program_state)
+        self.get_program_states = Mock(side_effect=self.__mocked_get_program_states)
 
         self.programs = []
         self.__next_program_id = None
@@ -150,6 +151,10 @@ class ControllerMock(Mock):
     def __mocked_get_program_state(self, program_id):
         program = self.__get_program_by_id(program_id)
         return program.create_program_state(self.therm_sensor_api, self.relay_api)
+
+    def __mocked_get_program_states(self):
+        return [self.programs[index].create_program_state(self.therm_sensor_api, self.relay_api)
+                for index in range(len(self.programs))]
 
     def __get_program_by_id(self, program_id):
         for index in range(len(self.programs)):

@@ -335,6 +335,19 @@ class Controller(object):
         finally:
             self.__lock.release()
 
+    def get_program_states(self):
+        """
+        Returns states of all programs as an array
+        :return: States of existing programs
+        :rtype: list
+        """
+        self.__lock.acquire()
+        try:
+            return [self.__programs[program_index].create_program_state(self.__therm_sensor_api, self.__relay_api) for
+                    program_index in range(len(self.__programs))]
+        finally:
+            self.__lock.release()
+
 
 class ProgramError(Exception):
     """Exception class for program errors """

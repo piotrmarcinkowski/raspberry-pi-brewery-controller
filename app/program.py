@@ -96,7 +96,7 @@ class Program(object):
     def create_program_state(self, therm_sensor_api, relay_api):
         heating_activated = False
         if self.heating_relay_index != Program.UNDEFINED_HEATING_RELAY_INDEX:
-            heating_activated =relay_api.get_relay_state(self.heating_relay_index)
+            heating_activated = relay_api.get_relay_state(self.heating_relay_index)
         cooling_activated = False
         if self.cooling_relay_index != Program.UNDEFINED_HEATING_RELAY_INDEX:
             cooling_activated = relay_api.get_relay_state(self.cooling_relay_index)

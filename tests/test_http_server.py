@@ -216,6 +216,22 @@ class HttpServerTestCase(unittest.TestCase):
         self.assertEqual(created_program.program_id, response_json["id"])
         self.assertEqual(created_program.program_crc, response_json["crc"])
 
+    def test_should_return_states_of_all_available_programs(self):
+        sensor1 = ThermSensorApiMock.MOCKED_SENSORS[0]
+        created_program1 = self.__create_program(sensor1, 2, 4, 15.0, 15.5, True)
+        sensor2 = ThermSensorApiMock.MOCKED_SENSORS[1]
+        created_program2 = self.__create_program(sensor2, 1, 3, 16.0, 16.5, True)
+
+        response = self.app.get(URL_PATH + URL_RESOURCE_STATES, follow_redirects=True)
+
+        self.assertEqual(200, response.status_code)
+        response_json = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor1], response_json[0]["currentTemp"])
+        self.assertEqual(created_program1.program_id, response_json[0]["id"])
+
+        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor2], response_json[1]["currentTemp"])
+        self.assertEqual(created_program2.program_id, response_json[1]["id"])
+
     def test_should_return_current_relay_state_of_the_given_program(self):
         sensor = ThermSensorApiMock.MOCKED_SENSORS[0]
         cooling_relay = 2
@@ -280,4 +296,4 @@ class HttpServerTestCase(unittest.TestCase):
                            "min_temp": min_temp, "max_temp": max_temp, "active": active}
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
-        return self.controller_mock.programs[0]
+        return self.controller_mock.programs[-1]
