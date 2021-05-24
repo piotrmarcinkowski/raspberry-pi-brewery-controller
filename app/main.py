@@ -2,7 +2,6 @@ from app.controller import Controller
 import app.http_server as server
 
 import app.hardware.hw_config as hw_config
-from program import Program
 from storage import Storage
 
 if hw_config.RUN_ON_RASPBERRY:

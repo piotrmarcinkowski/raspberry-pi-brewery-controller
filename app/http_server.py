@@ -22,9 +22,15 @@ URL_RESOURCE_STATES = "states"
 URL_RESOURCE_LOGS = "logs"
 
 @app.before_request
-def log_request_info():
+def log_request():
     print("Request {} {}".format(request.method, request.url))
     print("Body: {}".format(request.get_data().decode("utf-8")))
+
+@app.after_request
+def log_response(response):
+    print("Response {}".format(response.status))
+    print("Body: {}".format(response.get_data().decode("utf-8")))
+    return response
 
 
 @app.route(URL_PATH + URL_RESOURCE_SENSORS, methods=['GET'])

@@ -212,9 +212,9 @@ class HttpServerTestCase(unittest.TestCase):
                                 follow_redirects=True)
         self.assertEqual(200, response.status_code)
         response_json = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor], response_json["currentTemp"])
-        self.assertEqual(created_program.program_id, response_json["id"])
-        self.assertEqual(created_program.program_crc, response_json["crc"])
+        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor], response_json["current_temperature"])
+        self.assertEqual(created_program.program_id, response_json["program_id"])
+        self.assertEqual(created_program.program_crc, response_json["program_crc"])
 
     def test_should_return_states_of_all_available_programs(self):
         sensor1 = ThermSensorApiMock.MOCKED_SENSORS[0]
@@ -226,11 +226,11 @@ class HttpServerTestCase(unittest.TestCase):
 
         self.assertEqual(200, response.status_code)
         response_json = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor1], response_json[0]["currentTemp"])
-        self.assertEqual(created_program1.program_id, response_json[0]["id"])
+        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor1], response_json[0]["current_temperature"])
+        self.assertEqual(created_program1.program_id, response_json[0]["program_id"])
 
-        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor2], response_json[1]["currentTemp"])
-        self.assertEqual(created_program2.program_id, response_json[1]["id"])
+        self.assertEqual(ThermSensorApiMock.MOCKED_SENSORS_TEMPERATURE[sensor2], response_json[1]["current_temperature"])
+        self.assertEqual(created_program2.program_id, response_json[1]["program_id"])
 
     def test_should_return_current_relay_state_of_the_given_program(self):
         sensor = ThermSensorApiMock.MOCKED_SENSORS[0]
@@ -256,9 +256,9 @@ class HttpServerTestCase(unittest.TestCase):
                                     follow_redirects=True)
             self.assertEqual(200, response.status_code)
             response_json = json.loads(response.data.decode("utf-8"))
-            self.assertEqual(sensor_temp, response_json["currentTemp"])
-            self.assertEqual(data["heating_relay"], response_json["heatingActivated"], "Temperature: {}".format(sensor_temp))
-            self.assertEqual(data["cooling_relay"], response_json["coolingActivated"], "Temperature: {}".format(sensor_temp))
+            self.assertEqual(sensor_temp, response_json["current_temperature"])
+            self.assertEqual(data["heating_relay"], response_json["heating_activated"], "Temperature: {}".format(sensor_temp))
+            self.assertEqual(data["cooling_relay"], response_json["cooling_activated"], "Temperature: {}".format(sensor_temp))
 
     def test_should_return_different_crc_if_given_program_has_changed(self):
         sensor = ThermSensorApiMock.MOCKED_SENSORS[0]
@@ -272,7 +272,7 @@ class HttpServerTestCase(unittest.TestCase):
                                 follow_redirects=True)
         self.assertEqual(200, response.status_code)
         response_json = json.loads(response.data.decode("utf-8"))
-        crc = response_json["crc"]
+        crc = response_json["program_crc"]
 
         # now modify the program
         request_content = {"sensor_id": sensor, "heating_relay_index": 3,
@@ -286,7 +286,7 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.get(URL_PATH + URL_RESOURCE_STATES + "/" + created_program.program_id,
                                 follow_redirects=True)
         response_json = json.loads(response.data.decode("utf-8"))
-        new_crc = response_json["crc"]
+        new_crc = response_json["program_crc"]
 
         self.assertNotEqual(crc, new_crc)
 

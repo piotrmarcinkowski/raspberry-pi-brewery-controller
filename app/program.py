@@ -193,8 +193,8 @@ class ProgramState:
         self.__program_id = program_id
         self.__current_temperature = current_temperature
         self.__program_crc = program_crc
-        self.__heating_activated = heating_activated
-        self.__cooling_activated = cooling_activated
+        self.__heating_activated = True if heating_activated else False
+        self.__cooling_activated = True if cooling_activated else False
 
     @property
     def program_id(self):
@@ -217,11 +217,11 @@ class ProgramState:
         return self.__cooling_activated
 
     def to_json_data(self):
-        return {"id": self.program_id,
-                "currentTemp": self.current_temperature,
-                "crc": self.program_crc,
-                "heatingActivated": self.heating_activated,
-                "coolingActivated": self.cooling_activated}
+        return {"program_id": self.program_id,
+                "current_temperature": self.current_temperature,
+                "program_crc": self.program_crc,
+                "heating_activated": self.heating_activated,
+                "cooling_activated": self.cooling_activated}
 
     def to_json(self):
         data = self.to_json_data()

@@ -78,7 +78,7 @@ definitions:
   ProgramState:
     type: "object"
     properties:
-      id:
+      program_id:
         type: "string"
         format: "uuid"
         description: "Unique identifier of the program that this state object is associated with"
@@ -88,14 +88,17 @@ definitions:
         format: "uuid"
         description: "If the value of crc is the same as in associated program object it means that the program data is up-to-date. If crc is different it means that the program has changed and it's better to update it by requesting /programs endpoint. See corresponding crc field description in Program object"
         example: "abc123"
-      currentTemp:
+      current_temperature:
         type: "number"
         description: "Current temperature measured by the therm sensor associated with the program"
         example: "18.5"  
-      heatingActivated:
+      heating_activated:
         type: "boolean"
         description: "Indicates if heating device attached to the program is currently activated"
-      coolingActivated:
+      cooling_activated:
         type: "boolean"
         description: "Indicates if cooling device attached to the program is currently activated"
+      error:
+        type: "string"
+        description: "Indicates if an error occurred and user action is required"
         
