@@ -1,10 +1,20 @@
 from app.logger import Logger
-from event_bus import EventBus
+from utils import EventBus
 from app.hardware.relay_api import RelayApi
 from program import Program
 from storage import Storage
+from datetime import datetime
 
-bus = EventBus()
+_bus = EventBus()
+_programs = []
+ENV_TEMPERATURE = 30.0
+SIMULATION_SPEED = 1  # temperature delta is 1 degree per minute
+
+@_bus.on('programs_updated')
+def programs_updated(programs):
+    Logger.info("FAKE programs updated")
+    global _programs
+    _programs = programs
 
 
 class FakeHardware(object):
@@ -17,8 +27,14 @@ class FakeHardware(object):
 
     def __init__(self, relay_gpio_channels=RelayApi.RELAY_GPIO_CHANNELS, low_voltage_control=True) -> None:
         super().__init__()
+        Logger.info("FAKE init fake hardware")
         self.__fake_relay_states = [0] * len(relay_gpio_channels)
         self.__fake_sensors_temperature = {sensor: 18.0 for sensor in FakeHardware.FAKE_SENSORS}
+        global ENV_TEMPERATURE
+        self.__env_temperature = ENV_TEMPERATURE
+        self.__last_temp_update_timestamp = 0
+        global SIMULATION_SPEED
+        self.__temp_factor = SIMULATION_SPEED / 60
 
     @property
     def therm_sensor_api(self):
@@ -53,11 +69,30 @@ class FakeHardware(object):
         self.__update_temperatures()
         return self.__fake_sensors_temperature[sensor_id]
 
-    @bus.on('programs_updated')
-    def programs_updated(self, programs):
-        Logger.info("FAKE programs updated")
-        pass
-
     def __update_temperatures(self):
-        pass
+        now = datetime.timestamp(datetime.now())
+        if self.__last_temp_update_timestamp == 0:
+            self.__last_temp_update_timestamp = now
+        time_delta = now - self.__last_temp_update_timestamp
+        temp_delta = self.__temp_factor * time_delta
+        self.__last_temp_update_timestamp = now
 
+        for program in _programs:
+            sensor_id = program.sensor_id
+            current_temp = self.__fake_sensors_temperature[sensor_id]
+            temp_delta_sign = 1 if self.__env_temperature - current_temp > 0 else -1
+            if self.__is_cooling_active(program):
+                temp_delta_sign = -1
+            if self.__is_heating_active(program):
+                temp_delta_sign = 1
+            self.__fake_sensors_temperature[sensor_id] = current_temp + temp_delta_sign * temp_delta
+
+    def __is_cooling_active(self, program):
+        if program.cooling_relay_index != -1:
+            return self.__fake_relay_states[program.cooling_relay_index] == 1
+        return False
+
+    def __is_heating_active(self, program):
+        if program.heating_relay_index != -1:
+            return self.__fake_relay_states[program.heating_relay_index] == 1
+        return False

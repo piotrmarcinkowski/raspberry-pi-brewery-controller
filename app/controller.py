@@ -8,8 +8,10 @@ from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
 from app.storage import Storage
 from threading import RLock
-from event_bus import EventBus
 from monitor import Monitor
+from utils import EventBus
+
+_bus = EventBus()
 
 
 class Controller(object):
@@ -33,12 +35,11 @@ class Controller(object):
         self.__relay_api = relay_api
         self.__storage = storage if storage is not None else Storage()
         self.__lock = RLock()
-        self.__bus = EventBus()
 
     def __set_programs(self, programs):
         self.__programs = programs
         self.__monitors = [Monitor(program, self.__therm_sensor_api, self.__relay_api) for program in programs]
-        self.__bus.emit('programs_changed', programs)
+        _bus.emit('programs_updated', programs)
 
     def __default_main_loop_exit_condition(self):
         # Never exit main loop by default, keep the program running, this is needed to alter the behavior in tests only
