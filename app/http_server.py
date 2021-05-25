@@ -38,8 +38,7 @@ def get_therm_sensors():
     sensors = __controller.get_therm_sensors()
     response = []
     for sensor in sensors:
-        # todo: refactor to remove json assembling here
-        response.append({"id": sensor, "name": ""})
+        response.append(sensor.to_json_data())
     return valid_request_response(json.dumps(response))
 
 
@@ -75,8 +74,8 @@ def create_program(req):
     print("Json: {}".format(req.json))
     program = Program.from_json_data(req.json)
     try:
-        __controller.create_program(program)
-        return valid_request_response()
+        created_program = __controller.create_program(program)
+        return valid_request_response(created_program.to_json())
     except ProgramError as e:
         return invalid_request_response(403, content=str(e))
 
@@ -92,8 +91,8 @@ def modify_program(program_id):
 def replace_program(program_id, req):
     program = Program.from_json_data(req.json)
     try:
-        __controller.modify_program(program_id, program)
-        return valid_request_response()
+        modified_program = __controller.modify_program(program_id, program)
+        return valid_request_response(modified_program.to_json())
     except ValueError as e:
         return invalid_request_response(500, content=str(e))
     except ProgramError as e:

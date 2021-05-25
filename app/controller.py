@@ -213,7 +213,7 @@ class Controller(object):
             programs.append(created_program)
             try:
                 self.__storage.store_programs(programs)
-                Logger.info("Program created {}".format(str(program)))
+                Logger.info("Program created {}".format(str(created_program)))
                 self.__set_programs(programs)
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
@@ -253,6 +253,7 @@ class Controller(object):
                 self.__storage.store_programs(updated_programs)
                 self.__set_programs(updated_programs)
                 Logger.info("Program modified {} -> {}".format(str(existing_program), str(program)))
+                return updated_programs[program_index]
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))

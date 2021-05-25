@@ -27,8 +27,8 @@ class HttpServerTestCase(unittest.TestCase):
 
     def test_should_return_list_of_available_therm_sensors(self):
         response = self.app.get(URL_PATH + URL_RESOURCE_SENSORS, follow_redirects=True)
-        response_json = json.loads(response.data.decode("utf-8"))
         self.assertEqual(response.status_code, 200)
+        response_json = json.loads(response.data.decode("utf-8"))
         self.assertEqual(len(ThermSensorApiMock.MOCKED_SENSORS), len(response_json), 4)
         self.assertEqual(response_json[0]["id"], ThermSensorApiMock.MOCKED_SENSORS[0])
         self.assertEqual(response_json[1]["id"], ThermSensorApiMock.MOCKED_SENSORS[1])
@@ -70,8 +70,8 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b"")
-        created_program = self.controller_mock.programs[0]
+        response_json = json.loads(response.data.decode("utf-8"))
+        created_program = Program.from_json_data(response_json)
         self.assertEqual(expected_generated_id, created_program.program_id)
         self.assertEqual(request_content["name"], created_program.program_name)
         self.assertTrue(len(created_program.program_crc) > 0, "Crc should not be empty")
@@ -88,17 +88,16 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b"")
-        created_program = self.controller_mock.programs[0]
+        response_json = json.loads(response.data.decode("utf-8"))
+        created_program = Program.from_json_data(response_json)
 
         request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[1], "heating_relay_index": 3,
                            "cooling_relay_index": 4, "min_temp": 17.0, "max_temp": 19.0, "active": False}
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/" + created_program.program_id, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b"")
-
-        modified_program = self.controller_mock.programs[0]
+        response_json = json.loads(response.data.decode("utf-8"))
+        modified_program = Program.from_json_data(response_json)
         self.assertEqual(created_program.program_id, modified_program.program_id)
         self.assertTrue(len(modified_program.program_crc) > 0, "Crc should not be empty")
         self.assertNotEqual(created_program.program_crc, modified_program.program_crc)
@@ -115,8 +114,8 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b"")
-        created_program = self.controller_mock.programs[0]
+        response_json = json.loads(response.data.decode("utf-8"))
+        created_program = Program.from_json_data(response_json)
 
         response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/" + created_program.program_id, follow_redirects=True)
         self.assertEqual(response.status_code, 200)

@@ -6,6 +6,7 @@ from app.hardware.therm_sensor_api import SensorNotReadyError, NoSensorFoundErro
 from app.hardware.relay_api import RelayApi
 from app.program import Program
 from app.storage import Storage
+from therm_sensor import ThermSensor
 
 
 class ThermSensorApiMock(Mock):
@@ -71,7 +72,7 @@ class ControllerMock(Mock):
         self.therm_sensor_api = ThermSensorApiMock()
         self.relay_api = RelayApiMock()
 
-        self.get_therm_sensors = Mock(side_effect=self.therm_sensor_api.get_sensor_id_list)
+        self.get_therm_sensors = Mock(side_effect=self.__mocked_get_sensors)
         self.get_therm_sensor_temperature = Mock(side_effect=self.therm_sensor_api.get_sensor_temperature)
         self.create_program = Mock(side_effect=self.__mocked_create_program)
         self.modify_program = Mock(side_effect=self.__mocked_modify_program)
@@ -104,6 +105,9 @@ class ControllerMock(Mock):
     def set_relay_state(self, relay_index, relay_state):
         self.relay_api.relays[relay_index] = relay_state
 
+    def __mocked_get_sensors(self):
+        return [ThermSensor(sensor_id, "") for sensor_id in self.therm_sensor_api.get_sensor_id_list()]
+
     def __mocked_create_program(self, program):
         new_program = Program(
             program_id=self.get_next_program_id(),
@@ -116,6 +120,7 @@ class ControllerMock(Mock):
             active=program.active)
         self.programs.append(new_program)
         self.__generate_next_program_id()
+        return new_program
 
     def __mocked_modify_program(self, program_id, program):
         program_index = -1
@@ -128,6 +133,7 @@ class ControllerMock(Mock):
                                ProgramError.ERROR_CODE_INVALID_ID)
         existing_program = self.programs[program_index]
         self.programs[program_index] = existing_program.modify_with(program)
+        return self.programs[program_index]
 
     def __mocked_delete_program(self, program_id):
         program_index = -1
