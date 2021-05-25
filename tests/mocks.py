@@ -56,6 +56,9 @@ class RelayApiMock(Mock):
         self.get_relay_state = Mock(side_effect=self.__get_relay_state)
         self.set_relay_state = Mock(side_effect=self.__set_relay_state)
 
+    def mock_relay_state(self, relay_index, state):
+        self.relays[relay_index] = state
+
     def __get_relay_state(self, relay_index):
         return self.relays[relay_index]
 

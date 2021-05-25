@@ -8,7 +8,7 @@ from datetime import datetime
 _bus = EventBus()
 _programs = []
 ENV_TEMPERATURE = 30.0
-SIMULATION_SPEED = 1  # temperature delta is 1 degree per minute
+SIMULATION_SPEED = 2  # temperature delta is 2 degrees per minute
 
 @_bus.on('programs_updated')
 def programs_updated(programs):
@@ -59,14 +59,15 @@ class FakeHardware(object):
         return self.__fake_relay_states[relay_index]
 
     def set_relay_state(self, relay_index, state):
-        Logger.info("FAKE set relay[{}]={}".format(relay_index, relay_index, state))
+        Logger.info("FAKE set relay[{}]={}".format(relay_index, state))
         self.__fake_relay_states[relay_index] = state
 
     def get_sensor_id_list(self):
         return FakeHardware.FAKE_SENSORS
 
     def get_sensor_temperature(self, sensor_id):
-        self.__update_temperatures()
+        if sensor_id == FakeHardware.FAKE_SENSORS[0]:
+            self.__update_temperatures()
         return self.__fake_sensors_temperature[sensor_id]
 
     def __update_temperatures(self):
@@ -85,7 +86,8 @@ class FakeHardware(object):
                 temp_delta_sign = -1
             if self.__is_heating_active(program):
                 temp_delta_sign = 1
-            self.__fake_sensors_temperature[sensor_id] = current_temp + temp_delta_sign * temp_delta
+            new_temp = current_temp + temp_delta_sign * temp_delta
+            self.__fake_sensors_temperature[sensor_id] = new_temp
 
     def __is_cooling_active(self, program):
         if program.cooling_relay_index != -1:

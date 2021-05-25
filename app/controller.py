@@ -97,7 +97,8 @@ class Controller(object):
     @staticmethod
     def __is_relay_assigned(relay_index, programs):
         for program in programs:
-            return program.cooling_relay_index == relay_index or program.heating_relay_index == relay_index
+            if program.cooling_relay_index == relay_index or program.heating_relay_index == relay_index:
+                return True
         return False
 
     def __load_programs(self):

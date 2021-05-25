@@ -312,7 +312,7 @@ class ControllerTestCase(unittest.TestCase):
 
         # test if after program was modified by changing it's cooling relay the old relay gets deactivated
         calls = [call(1, 1), call(1, 0), call(2, 1)]
-        self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=False)
+        self.assertEqual(calls, self.relay_api_mock.set_relay_state.mock_calls)
 
     def test_should_deactivate_old_cooling_relay_if_it_has_been_modified_for_a_program(self):
         self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 13.0})
@@ -330,7 +330,34 @@ class ControllerTestCase(unittest.TestCase):
 
         # test if after program was modified by changing it's cooling relay the old relay gets deactivated
         calls = [call(1, 1), call(1, 0), call(2, 1)]
-        self.relay_api_mock.set_relay_state.assert_has_calls(calls, any_order=False)
+        self.assertEqual(calls, self.relay_api_mock.set_relay_state.mock_calls)
+
+    def test_should_activate_relays_for_multiple_programs(self):
+        self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 13.0, "1002": 13.0})
+        program1 = self.add_test_program("1001", -1, 1, 10.0, 12.0)  # cooling should get activated
+        program2 = self.add_test_program("1002", -1, 2, 10.0, 12.0)  # cooling should get activated
+
+        main_loop_exit_condition = TestLoopExitCondition(max_iterations=3)
+        self.controller.run(
+            interval_secs=0.01,
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
+
+        calls = [call(1, 1), call(2, 1)]
+        self.assertEqual(calls, self.relay_api_mock.set_relay_state.mock_calls)
+
+    def test_should_deactivate_unassigned_relays(self):
+        self.therm_sensor_api_mock.mock_sensors_temperature({"1001": 13.0, "1002": 13.0})
+        self.relay_api_mock.mock_relay_state(5, 1)
+        program1 = self.add_test_program("1001", -1, 1, 10.0, 12.0)  # cooling should get activated
+        program2 = self.add_test_program("1002", -1, 2, 10.0, 12.0)  # cooling should get activated
+
+        main_loop_exit_condition = TestLoopExitCondition(max_iterations=3)
+        self.controller.run(
+            interval_secs=0.01,
+            main_loop_exit_condition=main_loop_exit_condition.should_exit_main_loop)
+
+        calls = [call(5, 0), call(1, 1), call(2, 1)]
+        self.assertEqual(calls, self.relay_api_mock.set_relay_state.mock_calls)
 
     def test_should_reject_sensor_name_change_for_non_existing_sensor(self):
         with self.assertRaises(NoSensorFoundError):
