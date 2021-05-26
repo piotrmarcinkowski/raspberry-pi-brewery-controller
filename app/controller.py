@@ -262,6 +262,9 @@ class Controller(object):
             self.__lock.release()
 
     def __validate_program(self, program, existing_programs, skip_index=-1):
+        if program.min_temperature > program.max_temperature:
+            Logger.error("Program rejected - min temperature is higher than max: {}".format(str(program)))
+            raise ProgramError("Min temperature is higher than max")
         for index in range(len(existing_programs)):
             if index == skip_index:
                 continue

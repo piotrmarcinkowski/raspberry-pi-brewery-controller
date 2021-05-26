@@ -67,9 +67,12 @@ class ControllerTestCase(unittest.TestCase):
         self.storage_mock.store_programs.assert_called_with([program1])
         program2 = self.add_test_program("1002", 1, 5, 16.1, 17.4)
         self.storage_mock.store_programs.assert_called_with([program1, program2])
+        program3 = self.add_test_program("1003", 7, 0, 16.3, 17.2)
+        self.storage_mock.store_programs.assert_called_with([program1, program2, program3])
         programs = self.controller.get_programs()
         self.assertEqual(programs[0], program1)
         self.assertEqual(programs[1], program2)
+        self.assertEqual(programs[2], program3)
 
     def test_should_create_programs_with_given_parameters_cooling_only(self):
         program1 = self.add_test_program("1001", -1, 4, 16.5, 17.1)
@@ -130,6 +133,11 @@ class ControllerTestCase(unittest.TestCase):
         program4 = create_test_program("1001", 0, Controller.RELAYS_COUNT, 16.5, 17.1)
         with self.assertRaises(ProgramError):
             self.controller.create_program(program4)
+
+    def test_should_reject_program_that_has_max_temp_lower_than_min_temp(self):
+        program = create_test_program("1001", 1, 5, 17.0, 16.0)
+        with self.assertRaises(ProgramError):
+            self.controller.create_program(program)
 
     def test_should_delete_existing_program_0(self):
         program1 = self.add_test_program("1001", 2, 4, 16.5, 17.1)

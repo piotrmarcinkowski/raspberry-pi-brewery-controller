@@ -66,11 +66,10 @@ class FakeHardware(object):
         return FakeHardware.FAKE_SENSORS
 
     def get_sensor_temperature(self, sensor_id):
-        if sensor_id == FakeHardware.FAKE_SENSORS[0]:
-            self.__update_temperatures()
+        self.__maybe_update_fake_temperatures()
         return self.__fake_sensors_temperature[sensor_id]
 
-    def __update_temperatures(self):
+    def __update_fake_temperatures(self):
         now = datetime.timestamp(datetime.now())
         if self.__last_temp_update_timestamp == 0:
             self.__last_temp_update_timestamp = now
@@ -98,3 +97,11 @@ class FakeHardware(object):
         if program.heating_relay_index != -1:
             return self.__fake_relay_states[program.heating_relay_index] == 1
         return False
+
+    def __maybe_update_fake_temperatures(self):
+        now = datetime.timestamp(datetime.now())
+        if self.__last_temp_update_timestamp == 0:
+            self.__last_temp_update_timestamp = now
+
+        if now - self.__last_temp_update_timestamp > 1:
+            self.__update_fake_temperatures()
