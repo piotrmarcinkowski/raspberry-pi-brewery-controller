@@ -77,7 +77,7 @@ def create_program(req):
         created_program = __controller.create_program(program)
         return valid_request_response(created_program.to_json())
     except ProgramError as e:
-        return invalid_request_response(403, content=str(e))
+        return invalid_request_response(e.get_http_status(), content=e.to_json())
 
 
 @app.route(URL_PATH + URL_RESOURCE_PROGRAMS + "/<program_id>", methods=['PUT', 'DELETE'])
@@ -93,32 +93,27 @@ def replace_program(program_id, req):
     try:
         modified_program = __controller.modify_program(program_id, program)
         return valid_request_response(modified_program.to_json())
-    except ValueError as e:
-        return invalid_request_response(500, content=str(e))
     except ProgramError as e:
-        if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
-            return invalid_request_response(404, content=str(e))
-        return invalid_request_response(403, content=str(e))
+        return invalid_request_response(e.get_http_status(), content=e.to_json())
 
 
 def delete_program(program_id):
     try:
         deleted_program = __controller.delete_program(program_id)
         return valid_request_response(deleted_program.to_json())
-    except ValueError as e:
-        return invalid_request_response(500, content=str(e))
     except ProgramError as e:
-        if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
-            return invalid_request_response(404, content=str(e))
-        return invalid_request_response(403, content=str(e))
+        return invalid_request_response(e.get_http_status(), content=e.to_json())
 
 
 @app.route(URL_PATH + URL_RESOURCE_STATES, methods=['GET'])
 def get_program_states():
-    response = []
-    for state in __controller.get_program_states():
-        response.append(state.to_json_data())
-    return valid_request_response(json.dumps(response))
+    try:
+        response = []
+        for state in __controller.get_program_states():
+            response.append(state.to_json_data())
+        return valid_request_response(json.dumps(response))
+    except ProgramError as e:
+        return invalid_request_response(e.get_http_status(), content=e.to_json())
 
 
 @app.route(URL_PATH + URL_RESOURCE_STATES + "/<program_id>", methods=['GET'])
@@ -127,9 +122,7 @@ def get_program_state(program_id):
         state = __controller.get_program_state(program_id)
         return valid_request_response(json.dumps(state.to_json_data()))
     except ProgramError as e:
-        if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
-            return invalid_request_response(404, content=str(e))
-        return invalid_request_response(403, content=str(e))
+        return invalid_request_response(e.get_http_status(), content=e.to_json())
 
 
 @app.route(URL_PATH + URL_RESOURCE_LOGS, methods=['GET'])

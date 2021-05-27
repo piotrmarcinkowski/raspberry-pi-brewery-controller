@@ -131,7 +131,8 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.post(URL_PATH + URL_RESOURCE_PROGRAMS, follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
+        response_json = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(ControllerMock.DEFAULT_ERROR_MESSAGE, response_json["message"])
 
     def test_should_return_status_403_when_program_modification_was_rejected(self):
         request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
@@ -140,7 +141,8 @@ class HttpServerTestCase(unittest.TestCase):
         response = self.app.put(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True,
                                  json=request_content)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
+        response_json = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(ControllerMock.DEFAULT_ERROR_MESSAGE, response_json["message"])
 
     def test_should_return_status_404_on_modify_when_invalid_program_id(self):
         request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,
@@ -153,7 +155,8 @@ class HttpServerTestCase(unittest.TestCase):
         self.controller_mock.raise_error_on_program_delete()
         response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/0", follow_redirects=True)
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data, ControllerMock.DEFAULT_ERROR_MESSAGE.encode("utf-8"))
+        response_json = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(ControllerMock.DEFAULT_ERROR_MESSAGE, response_json["message"])
 
     def test_should_return_status_404_on_delete_when_invalid_program_id(self):
         response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/invalid_program_id", follow_redirects=True)

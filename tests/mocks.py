@@ -94,13 +94,13 @@ class ControllerMock(Mock):
         return self.__next_program_id
 
     def raise_error_on_program_create(self):
-        self.create_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
+        self.create_program = Mock(side_effect=ProgramError(message=ControllerMock.DEFAULT_ERROR_MESSAGE))
 
     def raise_error_on_program_modify(self):
-        self.modify_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
+        self.modify_program = Mock(side_effect=ProgramError(message=ControllerMock.DEFAULT_ERROR_MESSAGE))
 
     def raise_error_on_program_delete(self):
-        self.delete_program = Mock(side_effect=ProgramError(ControllerMock.DEFAULT_ERROR_MESSAGE))
+        self.delete_program = Mock(side_effect=ProgramError(message=ControllerMock.DEFAULT_ERROR_MESSAGE))
 
     def set_sensor_temperature(self, sensor_id, temperature):
         self.therm_sensor_api.temperatures[sensor_id] = temperature
@@ -132,8 +132,8 @@ class ControllerMock(Mock):
                 program_index = index
                 break
         if program_index < 0:
-            raise ProgramError("Program with the given ID not found:{}".format(program.program_id),
-                               ProgramError.ERROR_CODE_INVALID_ID)
+            raise ProgramError(program=program, message="Program with the given ID not found:{}".format(program.program_id),
+                               error_code=ProgramError.ERROR_CODE_INVALID_ID)
         existing_program = self.programs[program_index]
         self.programs[program_index] = existing_program.modify_with(program)
         return self.programs[program_index]
@@ -145,7 +145,7 @@ class ControllerMock(Mock):
                 program_index = index
                 break
         if program_index < 0:
-            raise ProgramError("Program with the given ID not found:{}".format(program_id),
+            raise ProgramError(None, "Program with the given ID not found:{}".format(program_id),
                                ProgramError.ERROR_CODE_INVALID_ID)
         deleted_program = self.programs[program_index]
         del self.programs[program_index]

@@ -1,3 +1,4 @@
+import json
 import time
 import atexit
 import uuid
@@ -108,7 +109,7 @@ class Controller(object):
             programs = self.__storage.load_programs()
             for program in programs:
                 if not program.program_id:
-                    raise ProgramError("Stored program has no id: {}".format(program))
+                    raise ProgramError(program, "Stored program has no id: {}".format(program), ProgramError.ERROR_CODE_CANNOT_LOAD_PROGRAMS)
             self.__set_programs(programs)
         finally:
             self.__lock.release()
@@ -218,7 +219,7 @@ class Controller(object):
                 self.__set_programs(programs)
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
-                raise ProgramError(str(e))
+                raise ProgramError(program, str(e), ProgramError.ERROR_CODE_CANNOT_STORE_PROGRAMS)
             return created_program
         finally:
             self.__lock.release()
@@ -245,7 +246,7 @@ class Controller(object):
             updated_programs = self.__programs.copy()
             program_index = self.find_program_index(program_id, updated_programs)
             if program_index < 0:
-                raise ProgramError("Program with the given ID not found:{}".format(program.program_id),
+                raise ProgramError(None, "Program with the given ID not found:{}".format(program.program_id),
                                    ProgramError.ERROR_CODE_INVALID_ID)
             existing_program = updated_programs[program_index]
             updated_programs[program_index] = existing_program.modify_with(program)
@@ -257,38 +258,38 @@ class Controller(object):
                 return updated_programs[program_index]
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
-                raise ProgramError(str(e))
+                raise ProgramError(program, str(e), ProgramError.ERROR_CODE_CANNOT_STORE_PROGRAMS)
         finally:
             self.__lock.release()
 
     def __validate_program(self, program, existing_programs, skip_index=-1):
         if program.min_temperature > program.max_temperature:
             Logger.error("Program rejected - min temperature is higher than max: {}".format(str(program)))
-            raise ProgramError("Min temperature is higher than max")
+            raise ProgramError(program, "Min temperature is higher than max", ProgramError.ERROR_CODE_MIN_TEMP_HIGHER_THAN_MAX)
         for index in range(len(existing_programs)):
             if index == skip_index:
                 continue
             existing_program = existing_programs[index]
             if existing_program.sensor_id == program.sensor_id:
-                Logger.error("Program rejected - duplicate sensor_id: {}".format(str(program)))
-                raise ProgramError("Sensor {} is used in other program".format(program.sensor_id))
+                Logger.error("Program rejected - sensor already in use - sensor_id: {}".format(str(program)))
+                raise ProgramError(program, "Sensor {} is used in other program".format(program.sensor_id), ProgramError.ERROR_CODE_SENSOR_ALREADY_IN_USE)
             if program.cooling_relay_index != -1 and existing_program.cooling_relay_index == program.cooling_relay_index:
                 Logger.error("Program rejected - duplicate cooling relay: {}".format(str(program)))
-                raise ProgramError("Relay {} is used in other program".format(program.cooling_relay_index))
+                raise ProgramError(program, "Relay {} is used in other program".format(program.cooling_relay_index), ProgramError.ERROR_CODE_COOLING_RELAY_ALREADY_IN_USE)
             if program.heating_relay_index != -1 and existing_program.heating_relay_index == program.heating_relay_index:
                 Logger.error("Program rejected - duplicate heating relay: {}".format(str(program)))
-                raise ProgramError("Relay {} is used in other program".format(program.heating_relay_index))
+                raise ProgramError(program, "Relay {} is used in other program".format(program.heating_relay_index), ProgramError.ERROR_CODE_HEATING_RELAY_ALREADY_IN_USE)
         if program.sensor_id not in self.__therm_sensor_api.get_sensor_id_list():
             Logger.error("Program rejected - invalid sensor_id: {}".format(str(program)))
-            raise ProgramError("Sensor {} is invalid".format(program.sensor_id))
+            raise ProgramError(program, "Sensor {} is invalid".format(program.sensor_id), ProgramError.ERROR_CODE_INVALID_SENSOR)
         if program.cooling_relay_index < 0 and program.cooling_relay_index != -1 or \
                 program.cooling_relay_index >= Controller.RELAYS_COUNT:
             Logger.error("Program rejected - invalid cooling relay index: {}".format(str(program)))
-            raise ProgramError("Relay {} is invalid".format(program.cooling_relay_index))
+            raise ProgramError(program, "Relay {} is invalid".format(program.cooling_relay_index), ProgramError.ERROR_CODE_INVALID_RELAY)
         if program.heating_relay_index < 0 and program.heating_relay_index != -1 or \
                 program.heating_relay_index >= Controller.RELAYS_COUNT:
             Logger.error("Program rejected - invalid heating relay index: {}".format(str(program)))
-            raise ProgramError("Relay {} is invalid".format(program.cooling_relay_index))
+            raise ProgramError(program, "Relay {} is invalid".format(program.cooling_relay_index), ProgramError.ERROR_CODE_INVALID_RELAY)
 
     def get_programs(self):
         """
@@ -312,7 +313,7 @@ class Controller(object):
             programs = self.__programs.copy()
             program_index = self.find_program_index(program_id, programs)
             if program_index < 0:
-                raise ProgramError("Program with the given ID not found:{}".format(program_id),
+                raise ProgramError(None, "Program with the given ID not found:{}".format(program_id),
                                    ProgramError.ERROR_CODE_INVALID_ID)
             program = programs.pop(program_index)
             try:
@@ -322,7 +323,7 @@ class Controller(object):
                 return program
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
-                raise ProgramError(str(e))
+                raise ProgramError(program, str(e), ProgramError.ERROR_CODE_CANNOT_STORE_PROGRAMS)
         finally:
             self.__lock.release()
 
@@ -336,7 +337,7 @@ class Controller(object):
         try:
             program_index = self.find_program_index(program_id, self.__programs)
             if program_index < 0:
-                raise ProgramError("Program with the given ID not found:{}".format(program_id),
+                raise ProgramError(None, "Program with the given ID not found:{}".format(program_id),
                                    ProgramError.ERROR_CODE_INVALID_ID)
             return self.__programs[program_index].create_program_state(self.__therm_sensor_api, self.__relay_api)
         finally:
@@ -361,10 +362,45 @@ class ProgramError(Exception):
 
     ERROR_CODE_INVALID_ID = "invalid_id"
     ERROR_CODE_INVALID_OPERATION = "invalid_operation"
+    ERROR_CODE_INVALID_RELAY = "invalid_relay"
+    ERROR_CODE_INVALID_SENSOR = "invalid_sensor"
+    ERROR_CODE_HEATING_RELAY_ALREADY_IN_USE = "heating_relay_already_in_use"
+    ERROR_CODE_COOLING_RELAY_ALREADY_IN_USE = "cooling_relay_already_in_use"
+    ERROR_CODE_SENSOR_ALREADY_IN_USE = "sensor_already_in_use"
+    ERROR_CODE_MIN_TEMP_HIGHER_THAN_MAX = "min_temp_higher_than_max"
+    ERROR_CODE_CANNOT_STORE_PROGRAMS = "cannot_store_programs"
+    ERROR_CODE_CANNOT_LOAD_PROGRAMS = "cannot_load_programs"
 
-    def __init__(self, message="", error_code=ERROR_CODE_INVALID_OPERATION):
-        super().__init__(message)
+    def __init__(self, program=None, message="", error_code=ERROR_CODE_INVALID_OPERATION):
+        super().__init__()
+        self.message = message
+        self.program = program
         self.error_code = error_code
+
+    def get_http_status(self):
+        codes = {
+            ProgramError.ERROR_CODE_INVALID_ID: 404,
+        }
+        return codes.get(self.error_code, 403)
 
     def get_error_code(self):
         return self.error_code
+
+    def get_message(self):
+        return self.message
+
+    def get_program(self):
+        return self.program
+
+    def to_json_data(self):
+        error = {
+                "error_code": self.error_code,
+                "message": self.message
+        }
+        if self.program is not None:
+            error["program"] = self.program.to_json_data()
+        return error
+
+    def to_json(self):
+        data = self.to_json_data()
+        return json.dumps(data)
