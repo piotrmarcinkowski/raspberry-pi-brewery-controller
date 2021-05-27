@@ -103,8 +103,8 @@ def replace_program(program_id, req):
 
 def delete_program(program_id):
     try:
-        __controller.delete_program(program_id)
-        return valid_request_response()
+        deleted_program = __controller.delete_program(program_id)
+        return valid_request_response(deleted_program.to_json())
     except ValueError as e:
         return invalid_request_response(500, content=str(e))
     except ProgramError as e:
@@ -123,8 +123,13 @@ def get_program_states():
 
 @app.route(URL_PATH + URL_RESOURCE_STATES + "/<program_id>", methods=['GET'])
 def get_program_state(program_id):
-    state = __controller.get_program_state(program_id)
-    return valid_request_response(json.dumps(state.to_json_data()))
+    try:
+        state = __controller.get_program_state(program_id)
+        return valid_request_response(json.dumps(state.to_json_data()))
+    except ProgramError as e:
+        if e.get_error_code() == ProgramError.ERROR_CODE_INVALID_ID:
+            return invalid_request_response(404, content=str(e))
+        return invalid_request_response(403, content=str(e))
 
 
 @app.route(URL_PATH + URL_RESOURCE_LOGS, methods=['GET'])

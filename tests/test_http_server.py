@@ -119,8 +119,10 @@ class HttpServerTestCase(unittest.TestCase):
 
         response = self.app.delete(URL_PATH + URL_RESOURCE_PROGRAMS + "/" + created_program.program_id, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b"")
+        response_json = json.loads(response.data.decode("utf-8"))
+        deleted_program = Program.from_json_data(response_json)
         self.assertEqual(len(self.controller_mock.programs), 0)
+        self.assertEqual(created_program.program_id, deleted_program.program_id)
 
     def test_should_return_status_403_when_program_creation_was_rejected(self):
         request_content = {"sensor_id": ThermSensorApiMock.MOCKED_SENSORS[0], "heating_relay_index": 1,

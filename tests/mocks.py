@@ -147,7 +147,9 @@ class ControllerMock(Mock):
         if program_index < 0:
             raise ProgramError("Program with the given ID not found:{}".format(program_id),
                                ProgramError.ERROR_CODE_INVALID_ID)
+        deleted_program = self.programs[program_index]
         del self.programs[program_index]
+        return deleted_program
 
     def __mocked_get_programs(self):
         return self.programs

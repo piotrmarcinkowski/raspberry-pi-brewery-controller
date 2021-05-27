@@ -319,6 +319,7 @@ class Controller(object):
                 self.__storage.store_programs(programs)
                 Logger.info("Program deleted {}".format(str(program)))
                 self.__set_programs(programs)
+                return program
             except Exception as e:
                 Logger.error("Programs store error {}".format(str(e)))
                 raise ProgramError(str(e))
