@@ -2,7 +2,7 @@ from app.controller import Controller
 import app.http_server as server
 
 import app.hardware.hw_config as hw_config
-from storage import Storage
+from app.storage import Storage
 
 if hw_config.RUN_ON_RASPBERRY:
     from app.hardware.therm_sensor_api import ThermSensorApi

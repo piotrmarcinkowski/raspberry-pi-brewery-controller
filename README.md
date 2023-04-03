@@ -98,7 +98,7 @@ docker build -t raspberry-pi-brewery-controller .
 After image is assembled you can run the server 
 
 ```
-docker container run --detach --publish=8080:8080 raspberry-pi-brewery-controller
+docker container run --detach --publish=8080:8080 --name brewery-demo raspberry-pi-brewery-controller
 ```
 
 ### Used libraries ###
