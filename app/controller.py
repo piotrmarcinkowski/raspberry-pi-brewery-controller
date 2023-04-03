@@ -9,8 +9,8 @@ from app.therm_sensor import ThermSensor
 from app.hardware.relay_api import RelayApi
 from app.storage import Storage
 from threading import RLock
-from monitor import Monitor
-from utils import EventBus
+from app.monitor import Monitor
+from app.utils import EventBus
 
 _bus = EventBus()
 
