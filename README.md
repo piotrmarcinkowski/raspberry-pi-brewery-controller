@@ -10,6 +10,8 @@ All the documentation, including assembly schemes, can be found in the [docs](do
 
 The final controller was built using commonly available electronic parts. Refer to this pic to see consecutive development stages up until deployment in the real brewery.
 
+There is an Android client application available for this controller at https://bitbucket.org/pmarcinkowski/brewery-controller-client
+
 ![Assembly scheme](docs/other/hardware.jpg)
 
 
